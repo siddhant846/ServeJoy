@@ -1,0 +1,24 @@
+{
+  "short_name": "ServeJoy",
+  "name": "ServeJoy - Café POS & QR Ordering",
+  "description": "Premium Café POS, KOT & QR ordering system",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FBF8F5",
+  "theme_color": "#3a1e12",
+  "display": "standalone",
+  "orientation": "portrait"
+}
