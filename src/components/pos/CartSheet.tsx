@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ShoppingBag, Trash2, Plus, Minus, ChefHat, Receipt, Tag, User, Phone } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,6 +24,17 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill }) => {
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [customerNote, setCustomerNote] = useState<string>('');
   const [discountCode, setDiscountCode] = useState<string>('');
+  const [isBouncing, setIsBouncing] = useState<boolean>(false);
+  const prevCountRef = useRef(cartCount);
+
+  useEffect(() => {
+    if (cartCount > prevCountRef.current) {
+      setIsBouncing(true);
+      const timer = setTimeout(() => setIsBouncing(false), 500);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = cartCount;
+  }, [cartCount]);
 
   const tables = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Takeaway'];
 
@@ -67,11 +78,16 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill }) => {
   };
 
   return (
-    <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-4 shadow-card">
+    <div id="cart-sheet-section" className="flex h-full flex-col rounded-3xl border border-border bg-card p-4 shadow-card scroll-mt-20">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-border/60">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10 text-accent">
+          <div
+            id="pos-cart-target"
+            className={`flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10 text-accent transition-transform duration-300 ${
+              isBouncing ? 'animate-cart-bounce' : ''
+            }`}
+          >
             <ShoppingBag className="h-4 w-4" />
           </div>
           <div>

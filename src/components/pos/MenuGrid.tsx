@@ -1,16 +1,72 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { MenuItem } from '../../types';
-import { Search, Plus, Minus, Sparkles, AlertCircle } from 'lucide-react';
+import { Search, Plus, Minus, Sparkles, AlertCircle, ShoppingBag } from 'lucide-react';
 
 interface MenuGridProps {
   onOpenAiDishModal: () => void;
+}
+
+interface FlyingItem {
+  id: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  emoji: string;
+  imageUrl?: string;
 }
 
 export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
   const { menuItems, cart, addToCart, updateCartQuantity, cafeProfile } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [flyingItems, setFlyingItems] = useState<FlyingItem[]>([]);
+
+  const triggerFlyAnimation = (e: React.MouseEvent, item: MenuItem) => {
+    let startX = e.clientX;
+    let startY = e.clientY;
+
+    if (!startX || !startY) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      startX = rect.left + rect.width / 2;
+      startY = rect.top + rect.height / 2;
+    }
+
+    // Determine target coordinates (mobile bottom bar if screen < 1024, or desktop cart icon)
+    let endX = window.innerWidth - 60;
+    let endY = 80;
+
+    const desktopTarget = document.getElementById('pos-cart-target');
+    const mobileTarget = document.getElementById('mobile-cart-target');
+
+    if (mobileTarget && window.innerWidth < 1024) {
+      const rect = mobileTarget.getBoundingClientRect();
+      endX = rect.left + rect.width / 2;
+      endY = rect.top + rect.height / 2;
+    } else if (desktopTarget) {
+      const rect = desktopTarget.getBoundingClientRect();
+      endX = rect.left + rect.width / 2;
+      endY = rect.top + rect.height / 2;
+    }
+
+    const flyId = `${item.id}-${Date.now()}-${Math.random()}`;
+    const newFly: FlyingItem = {
+      id: flyId,
+      startX,
+      startY,
+      endX,
+      endY,
+      emoji: item.emoji || '🍽️',
+      imageUrl: item.imageUrl,
+    };
+
+    setFlyingItems((prev) => [...prev, newFly]);
+
+    setTimeout(() => {
+      setFlyingItems((prev) => prev.filter((f) => f.id !== flyId));
+    }, 700);
+  };
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -81,8 +137,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
           return (
             <div
               key={item.id}
-              onClick={() => {
+              onClick={(e) => {
                 if (item.isAvailable) {
+                  triggerFlyAnimation(e, item);
                   addToCart(item);
                 }
               }}
@@ -152,6 +209,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          triggerFlyAnimation(e, item);
                           updateCartQuantity(item.id, qty + 1);
                         }}
                         className="flex h-5 w-5 items-center justify-center rounded-lg hover:bg-black/20 transition active:scale-90"
@@ -165,11 +223,12 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
                       disabled={!item.isAvailable}
                       onClick={(e) => {
                         e.stopPropagation();
+                        triggerFlyAnimation(e, item);
                         addToCart(item);
                       }}
-                      className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent hover:text-white transition active:scale-95 disabled:pointer-events-none"
+                      className="flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent hover:text-white transition active:scale-95 disabled:pointer-events-none"
                     >
-                      <Plus className="h-3.5 w-3.5" />
+                      <ShoppingBag className="h-3.5 w-3.5" />
                       <span>Add</span>
                     </button>
                   )}
@@ -189,6 +248,37 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
           </p>
         </div>
       )}
+
+      {/* Flying Dishes Animation Overlay */}
+      {flyingItems.map((flying) => (
+        <div
+          key={flying.id}
+          className="flying-cart-item pointer-events-none rounded-full border-2 border-white bg-accent shadow-elevated overflow-hidden flex items-center justify-center"
+          style={
+            {
+              '--start-x': `${flying.startX}px`,
+              '--start-y': `${flying.startY}px`,
+              '--end-x': `${flying.endX}px`,
+              '--end-y': `${flying.endY}px`,
+              width: '46px',
+              height: '46px',
+            } as React.CSSProperties
+          }
+        >
+          {flying.imageUrl ? (
+            <img
+              src={flying.imageUrl}
+              alt="Item flying to cart"
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <span className="text-lg select-none">{flying.emoji}</span>
+          )}
+        </div>
+      ))}
     </div>
   );
 };

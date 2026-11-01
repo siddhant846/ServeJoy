@@ -100,3 +100,31 @@
   scrollbar-width: none;  /* Firefox */
 }
 
+/* Flying item animation to cart */
+@keyframes flyToCart {
+  0% {
+    left: var(--start-x);
+    top: var(--start-y);
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  35% {
+    transform: translate(-50%, -50%) scale(1.18) rotate(10deg);
+    opacity: 0.95;
+  }
+  100% {
+    left: var(--end-x);
+    top: var(--end-y);
+    transform: translate(-50%, -50%) scale(0.2) rotate(-15deg);
+    opacity: 0;
+  }
+}
+
+.flying-cart-item {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  animation: flyToCart 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+

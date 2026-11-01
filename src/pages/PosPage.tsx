@@ -11,7 +11,7 @@ import { AiDishModal } from '../components/pos/AiDishModal';
 import { PrinterManagerModal } from '../components/pos/PrinterManagerModal';
 import { AnalyticsDashboard } from '../components/pos/AnalyticsDashboard';
 import { Bill } from '../types';
-import { Coffee, TrendingUp, History, Printer, Share2 } from 'lucide-react';
+import { Coffee, TrendingUp, History, Printer, Share2, ShoppingBag, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const PosPage: React.FC = () => {
@@ -193,6 +193,52 @@ export const PosPage: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Floating Bottom Cart Bar (Option C) */}
+      {cart.length > 0 && activeTab === 'menu' && (
+        <div className="fixed bottom-4 left-3 right-3 z-40 mx-auto max-w-lg lg:hidden animate-slide-up">
+          <div className="flex items-center justify-between rounded-3xl bg-neutral-900/95 p-3 sm:p-3.5 text-white shadow-elevated border border-neutral-800 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div
+                id="mobile-cart-target"
+                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-white shadow-md transition-transform"
+              >
+                <ShoppingBag className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                  {cart.reduce((sum, ci) => sum + ci.quantity, 0)} {cart.reduce((sum, ci) => sum + ci.quantity, 0) === 1 ? 'item' : 'items'} in Cart
+                </p>
+                <p className="font-display text-base font-extrabold text-white">
+                  {cafeProfile.currency}
+                  {cart.reduce((sum, ci) => sum + ci.item.price * ci.quantity, 0)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById('cart-sheet-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="flex items-center gap-1.5 rounded-2xl bg-neutral-800 px-3 py-2 text-xs font-bold text-neutral-200 hover:bg-neutral-700 transition active:scale-95"
+              >
+                <span>View Cart</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleGenerateBill(checkoutTable || 'Table 1', {})}
+                className="flex items-center gap-1.5 rounded-2xl bg-accent px-3.5 py-2 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-95"
+              >
+                <Receipt className="h-3.5 w-3.5" />
+                <span>Generate Bill</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <BillModal
