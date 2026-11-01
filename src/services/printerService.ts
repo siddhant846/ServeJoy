@@ -21,6 +21,25 @@ export interface PrintResult {
   isSimulated?: boolean;
 }
 
+// Clean text helper to prevent Chinese GBK character corruption on thermal printers
+function cleanAscii(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/₹/g, 'Rs.')
+    .replace(/€/g, 'EUR')
+    .replace(/£/g, 'GBP')
+    .replace(/[^\x20-\x7E\n\r\t]/g, ''); // strip raw multi-byte unicode symbols & emojis
+}
+
+function getThermalCurrency(currency: string): string {
+  if (!currency || currency.includes('₹') || currency === '₹') return 'Rs.';
+  if (currency === '$') return '$';
+  if (currency === '€') return 'EUR ';
+  if (currency === '£') return 'GBP ';
+  const cleaned = cleanAscii(currency).trim();
+  return cleaned ? `${cleaned} ` : 'Rs.';
+}
+
 class ThermalPrinterService {
   private activeDevice: any = null;
   private activeGattServer: any = null;
@@ -313,24 +332,31 @@ class ThermalPrinterService {
     const encoder = new TextEncoder();
     const bytes: number[] = [];
     const cols = paperWidth === '80mm' ? 48 : 32;
+    const curr = getThermalCurrency(cafe.currency);
 
-    // Initialize printer
+    // 1. Reset / Initialize printer
     bytes.push(27, 64); // ESC @
+
+    // 2. Cancel Chinese / Kanji double-byte mode (FS .)
+    bytes.push(28, 46); // FS . (Prevents thermal printers from misinterpreting bytes as GBK Chinese)
+
+    // 3. Select standard character code table (PC437 Standard USA / English ASCII)
+    bytes.push(27, 116, 0); // ESC t 0
 
     // Center header
     bytes.push(27, 97, 1); // ESC a 1 (center)
     bytes.push(29, 33, 17); // Double height + width
-    encoder.encode(`${cafe.name}\n`).forEach((b) => bytes.push(b));
+    encoder.encode(`${cleanAscii(cafe.name)}\n`).forEach((b) => bytes.push(b));
     bytes.push(29, 33, 0); // Normal text
 
     if (cafe.tagLine) {
-      encoder.encode(`${cafe.tagLine}\n`).forEach((b) => bytes.push(b));
+      encoder.encode(`${cleanAscii(cafe.tagLine)}\n`).forEach((b) => bytes.push(b));
     }
     if (cafe.phone) {
-      encoder.encode(`Ph: ${cafe.phone}\n`).forEach((b) => bytes.push(b));
+      encoder.encode(`Ph: ${cleanAscii(cafe.phone)}\n`).forEach((b) => bytes.push(b));
     }
     if (cafe.address) {
-      encoder.encode(`${cafe.address}\n`).forEach((b) => bytes.push(b));
+      encoder.encode(`${cleanAscii(cafe.address)}\n`).forEach((b) => bytes.push(b));
     }
 
     const divider = '-'.repeat(cols) + '\n';
@@ -339,7 +365,7 @@ class ThermalPrinterService {
       timeStyle: 'short',
     });
 
-    encoder.encode(`\n${bill.billNumber} | ${bill.tableNumber || 'Takeaway'}\n`).forEach((b) => bytes.push(b));
+    encoder.encode(`\n${cleanAscii(bill.billNumber)} | ${cleanAscii(bill.tableNumber || 'Takeaway')}\n`).forEach((b) => bytes.push(b));
     encoder.encode(`Date: ${dateStr}\n`).forEach((b) => bytes.push(b));
     encoder.encode(divider).forEach((b) => bytes.push(b));
 
@@ -349,19 +375,21 @@ class ThermalPrinterService {
     if (cols === 48) {
       encoder.encode(`Item                         Qty    Price     Amount\n${divider}`).forEach((b) => bytes.push(b));
       bill.items.forEach((item) => {
-        const name = item.name.length > 25 ? item.name.substring(0, 24) + '.' : item.name.padEnd(25, ' ');
+        const cleanName = cleanAscii(item.name);
+        const name = cleanName.length > 25 ? cleanName.substring(0, 24) + '.' : cleanName.padEnd(25, ' ');
         const qty = String(item.quantity).padStart(4, ' ');
-        const rate = `${cafe.currency}${item.price}`.padStart(8, ' ');
-        const amt = `${cafe.currency}${item.price * item.quantity}`.padStart(9, ' ');
+        const rate = `${curr}${item.price}`.padStart(8, ' ');
+        const amt = `${curr}${item.price * item.quantity}`.padStart(9, ' ');
         encoder.encode(`${name} ${qty} ${rate} ${amt}\n`).forEach((b) => bytes.push(b));
       });
     } else {
       // 58mm (32 cols)
       encoder.encode(`Item               Qty    Amount\n${divider}`).forEach((b) => bytes.push(b));
       bill.items.forEach((item) => {
-        const name = item.name.length > 16 ? item.name.substring(0, 15) + '.' : item.name.padEnd(16, ' ');
+        const cleanName = cleanAscii(item.name);
+        const name = cleanName.length > 16 ? cleanName.substring(0, 15) + '.' : cleanName.padEnd(16, ' ');
         const qty = String(item.quantity).padStart(3, ' ');
-        const amt = `${cafe.currency}${item.price * item.quantity}`.padStart(11, ' ');
+        const amt = `${curr}${item.price * item.quantity}`.padStart(11, ' ');
         encoder.encode(`${name} ${qty} ${amt}\n`).forEach((b) => bytes.push(b));
       });
     }
@@ -371,17 +399,17 @@ class ThermalPrinterService {
     // Right align totals
     bytes.push(27, 97, 2);
     if (bill.discountAmount > 0) {
-      encoder.encode(`Subtotal: ${cafe.currency}${bill.subtotal}\n`).forEach((b) => bytes.push(b));
-      encoder.encode(`Discount: -${cafe.currency}${bill.discountAmount}\n`).forEach((b) => bytes.push(b));
+      encoder.encode(`Subtotal: ${curr}${bill.subtotal}\n`).forEach((b) => bytes.push(b));
+      encoder.encode(`Discount: -${curr}${bill.discountAmount}\n`).forEach((b) => bytes.push(b));
     }
 
     bytes.push(27, 69, 1); // Bold
-    encoder.encode(`TOTAL: ${cafe.currency}${bill.total}\n`).forEach((b) => bytes.push(b));
+    encoder.encode(`TOTAL: ${curr}${bill.total}\n`).forEach((b) => bytes.push(b));
     bytes.push(27, 69, 0); // Normal
     encoder.encode(`Payment: ${bill.paymentMode.toUpperCase()}\n`).forEach((b) => bytes.push(b));
 
     if (bill.customerName) {
-      encoder.encode(`Customer: ${bill.customerName}\n`).forEach((b) => bytes.push(b));
+      encoder.encode(`Customer: ${cleanAscii(bill.customerName)}\n`).forEach((b) => bytes.push(b));
     }
 
     // Center footer
@@ -401,9 +429,11 @@ class ThermalPrinterService {
     const cols = paperWidth === '80mm' ? 48 : 32;
 
     bytes.push(27, 64);
+    bytes.push(28, 46); // Cancel Chinese character mode
+    bytes.push(27, 116, 0); // PC437
     bytes.push(27, 97, 1);
     bytes.push(29, 33, 17);
-    encoder.encode(`${cafe.name}\n`).forEach((b) => bytes.push(b));
+    encoder.encode(`${cleanAscii(cafe.name)}\n`).forEach((b) => bytes.push(b));
     bytes.push(29, 33, 0);
     encoder.encode(`THERMAL PRINTER TEST\n${'='.repeat(cols)}\n`).forEach((b) => bytes.push(b));
 
