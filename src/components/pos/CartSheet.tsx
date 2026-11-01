@@ -4,10 +4,10 @@ import { ShoppingBag, Trash2, Plus, Minus, ChefHat, Receipt, Tag, User, Phone } 
 import { toast } from 'sonner';
 
 interface CartSheetProps {
-  onOpenCheckout: (table: string, customer: { name?: string; phone?: string; note?: string }) => void;
+  onGenerateBill: (table: string, customer: { name?: string; phone?: string; note?: string }) => void;
 }
 
-export const CartSheet: React.FC<CartSheetProps> = ({ onOpenCheckout }) => {
+export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill }) => {
   const {
     cart,
     updateCartQuantity,
@@ -59,7 +59,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onOpenCheckout }) => {
       toast.error('Cart is empty!');
       return;
     }
-    onOpenCheckout(selectedTable, {
+    onGenerateBill(selectedTable, {
       name: customerName,
       phone: customerPhone,
       note: customerNote,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bill } from '../../types';
+import { Bill, PaymentMode } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { thermalPrinter } from '../../services/printerService';
 import { PrinterManagerModal } from './PrinterManagerModal';
@@ -16,6 +16,8 @@ import {
   Loader2,
   ChevronRight,
   Sparkles,
+  QrCode,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,7 +27,7 @@ interface ThermalReceiptProps {
 }
 
 export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose }) => {
-  const { cafeProfile, activePrinter } = useApp();
+  const { cafeProfile, activePrinter, updateBillStatus } = useApp();
 
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
   const [showHexDump, setShowHexDump] = useState<boolean>(false);
@@ -35,7 +37,26 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
   );
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState<boolean>(false);
 
+  // Bill payment status state
+  const [billStatus, setBillStatus] = useState<'pending' | 'paid' | 'void'>(bill?.status || 'pending');
+  const [paidMode, setPaidMode] = useState<PaymentMode>(bill?.paymentMode || 'upi');
+
   if (!bill) return null;
+
+  const upiId = cafeProfile.upiId || 'chaipoint@icici';
+  const upiString = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
+    cafeProfile.name
+  )}&am=${bill.total}&cu=INR&tn=${encodeURIComponent(`Bill ${bill.billNumber}`)}`;
+  const upiQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
+    upiString
+  )}&margin=6`;
+
+  const handleMarkPaid = (mode: PaymentMode) => {
+    updateBillStatus(bill.id, 'paid', mode);
+    setBillStatus('paid');
+    setPaidMode(mode);
+    toast.success(`Bill marked as PAID via ${mode.toUpperCase()}!`, { icon: '✅' });
+  };
 
   const paperWidth = activePrinter?.paperWidth || '58mm';
   const escPosBytes = thermalPrinter.buildReceiptEscPos(bill, cafeProfile, paperWidth);
@@ -47,11 +68,9 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
       .join('\n');
 
     const paymentText =
-      bill.paymentMode === 'cash'
-        ? '💵 Cash'
-        : bill.paymentMode === 'upi'
-        ? '📱 UPI (Online)'
-        : '💳 Card';
+      billStatus === 'paid'
+        ? `✅ Paid via ${paidMode.toUpperCase()}`
+        : `🟡 Unpaid (Scan UPI QR: ${upiId})`;
 
     return (
       `🧾 *${cafeProfile.name.toUpperCase()}* — Digital Receipt\n` +
@@ -68,7 +87,9 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
         ? `*Subtotal:* ${cafeProfile.currency}${bill.subtotal}\n*Discount:* -${cafeProfile.currency}${bill.discountAmount}\n`
         : '') +
       `*GRAND TOTAL:* *${cafeProfile.currency}${bill.total}*\n` +
-      `*Payment:* ${paymentText}\n` +
+      `*Status:* ${paymentText}\n` +
+      `*UPI ID:* ${upiId}\n` +
+      `*Pay Link:* ${upiString}\n` +
       `────────────────────────────\n` +
       `✨ *Thank you for dining at ${cafeProfile.name}!* 😊\n` +
       (cafeProfile.address ? `📍 ${cafeProfile.address}\n` : '') +
@@ -274,6 +295,54 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
             <span className="font-receipt text-xs font-bold text-muted-foreground">{bill.billNumber}</span>
           </div>
 
+          {/* Payment Status & Settle Actions */}
+          {billStatus === 'pending' ? (
+            <div className="mb-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span>Payment Pending: {cafeProfile.currency}{bill.total}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold">Unpaid</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-bold text-muted-foreground shrink-0">Mark Paid:</span>
+                <button
+                  type="button"
+                  onClick={() => handleMarkPaid('upi')}
+                  className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-1.5 px-2 text-[11px] font-bold text-white shadow-sm transition active:scale-95 flex items-center justify-center gap-1"
+                >
+                  <span>📱 UPI</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMarkPaid('cash')}
+                  className="flex-1 rounded-xl bg-card border border-border hover:bg-secondary py-1.5 px-2 text-[11px] font-bold text-foreground transition active:scale-95 flex items-center justify-center gap-1"
+                >
+                  <span>💵 Cash</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMarkPaid('card')}
+                  className="rounded-xl bg-card border border-border hover:bg-secondary py-1.5 px-2 text-[11px] font-bold text-foreground transition active:scale-95 flex items-center justify-center gap-1"
+                >
+                  <span>💳 Card</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-3 flex items-center justify-between rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-800 dark:text-emerald-300">
+              <div className="flex items-center gap-1.5 font-bold">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span>Paid via {paidMode.toUpperCase()}</span>
+              </div>
+              <span className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400">
+                {cafeProfile.currency}{bill.total} Settled
+              </span>
+            </div>
+          )}
+
           {/* Printable Receipt Card */}
           <div id="printable-receipt" className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm text-foreground space-y-3 font-sans">
             <div className="text-center space-y-1">
@@ -333,15 +402,66 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
               <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
                 <span>Payment</span>
                 <span className="font-semibold text-foreground flex items-center gap-1">
-                  {bill.paymentMode === 'cash' && '💵 Cash'}
-                  {bill.paymentMode === 'upi' && '📱 UPI'}
-                  {bill.paymentMode === 'card' && '💳 Card'}
+                  {billStatus === 'paid' ? `✅ Paid (${paidMode.toUpperCase()})` : '🟡 Pending (Scan UPI QR)'}
                 </span>
               </div>
             </div>
 
             <div className="border-b border-dashed border-border" />
+
+            {/* QR Code inside Printable Slip */}
+            <div className="text-center pt-1 pb-1 space-y-1">
+              <p className="font-receipt text-[10px] font-bold text-muted-foreground uppercase">
+                Scan to Pay via UPI
+              </p>
+              <div className="mx-auto w-28 h-28 p-1.5 bg-white border border-border/80 rounded-2xl flex items-center justify-center shadow-sm">
+                <img src={upiQrUrl} alt="UPI QR" className="w-full h-full object-contain" />
+              </div>
+              <p className="font-receipt text-[10px] text-muted-foreground">
+                GPay • PhonePe • Paytm • BHIM
+              </p>
+              <p className="font-mono text-[9px] text-muted-foreground">{upiId}</p>
+            </div>
+
+            <div className="border-b border-dashed border-border" />
             <p className="text-center text-xs text-muted-foreground font-sans">Thank you! Visit again 😊</p>
+          </div>
+
+          {/* Interactive Scan to Pay UPI Section */}
+          <div className="mt-3 rounded-3xl border border-border/80 bg-card p-4 text-center space-y-2.5 shadow-sm">
+            <div className="flex items-center justify-between pb-2 border-b border-border/50 text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <QrCode className="h-4 w-4 text-accent" />
+                <span>Scan to Pay {cafeProfile.currency}{bill.total}</span>
+              </div>
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                Auto Amount
+              </span>
+            </div>
+
+            <div className="mx-auto w-44 h-44 rounded-2xl overflow-hidden border border-border/80 p-2 bg-white shadow-inner flex items-center justify-center">
+              <img
+                src={upiQrUrl}
+                alt="UPI Payment QR Code"
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">
+              Customer can scan using <strong>PhonePe</strong>, <strong>Google Pay</strong>, or <strong>Paytm</strong>
+            </p>
+
+            <div className="flex items-center justify-center gap-2 pt-0.5">
+              <div className="inline-flex items-center gap-1 rounded-xl bg-secondary/80 py-1 px-2.5 text-[10px] font-mono text-muted-foreground">
+                <span>UPI: {upiId}</span>
+              </div>
+              <a
+                href={upiString}
+                className="inline-flex items-center gap-1 rounded-xl bg-accent/15 hover:bg-accent/25 text-accent py-1 px-2.5 text-[10px] font-bold transition"
+              >
+                <span>📱 Pay via App</span>
+              </a>
+            </div>
           </div>
 
           {/* WhatsApp Digital Bill Section */}

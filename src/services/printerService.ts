@@ -406,14 +406,47 @@ class ThermalPrinterService {
     bytes.push(27, 69, 1); // Bold
     encoder.encode(`TOTAL: ${curr}${bill.total}\n`).forEach((b) => bytes.push(b));
     bytes.push(27, 69, 0); // Normal
-    encoder.encode(`Payment: ${bill.paymentMode.toUpperCase()}\n`).forEach((b) => bytes.push(b));
+    encoder.encode(`Payment: ${bill.status === 'paid' ? bill.paymentMode.toUpperCase() + ' (PAID)' : 'PENDING (SCAN UPI)'}\n`).forEach((b) => bytes.push(b));
 
     if (bill.customerName) {
       encoder.encode(`Customer: ${cleanAscii(bill.customerName)}\n`).forEach((b) => bytes.push(b));
     }
 
-    // Center footer
+    // Dynamic UPI QR Code for Restaurant Bill Payment
+    const upiId = cafe.upiId || 'chaipoint@icici';
+    const cleanCafeName = cleanAscii(cafe.name) || 'Cafe';
+    const cleanBillNum = cleanAscii(bill.billNumber) || 'Bill';
+    const upiData = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(cleanCafeName)}&am=${bill.total}&cu=INR&tn=${encodeURIComponent(cleanBillNum)}`;
+    const qrBytes = new TextEncoder().encode(upiData);
+
+    // Center QR Code
     bytes.push(27, 97, 1);
+    encoder.encode(`\n${divider}`).forEach((b) => bytes.push(b));
+    encoder.encode(`SCAN TO PAY VIA UPI\n`).forEach((b) => bytes.push(b));
+
+    // Standard ESC/POS Hardware QR Code Commands (Model 2, GS ( k)
+    // 1. Model 2: GS ( k 4 0 49 65 50 0
+    bytes.push(29, 40, 107, 4, 0, 49, 65, 50, 0);
+    // 2. Module pixel size: GS ( k 3 0 49 67 n (4 for 58mm, 5 for 80mm)
+    const qrModuleSize = paperWidth === '80mm' ? 5 : 4;
+    bytes.push(29, 40, 107, 3, 0, 49, 67, qrModuleSize);
+    // 3. Error correction level M (49): GS ( k 3 0 49 69 49
+    bytes.push(29, 40, 107, 3, 0, 49, 69, 49);
+    // 4. Store symbol data: GS ( k pL pH 49 80 48 <data>
+    const dataLen = qrBytes.length + 3;
+    const pL = dataLen % 256;
+    const pH = Math.floor(dataLen / 256);
+    bytes.push(29, 40, 107, pL, pH, 49, 80, 48);
+    qrBytes.forEach((b) => bytes.push(b));
+    // 5. Print QR symbol: GS ( k 3 0 49 81 48
+    bytes.push(29, 40, 107, 3, 0, 49, 81, 48);
+
+    // Fallback & human readable UPI details under QR
+    encoder.encode(`GPay - PhonePe - Paytm - BHIM\n`).forEach((b) => bytes.push(b));
+    encoder.encode(`UPI ID: ${cleanAscii(upiId)}\n`).forEach((b) => bytes.push(b));
+    encoder.encode(`Amount: ${curr}${bill.total}\n`).forEach((b) => bytes.push(b));
+
+    // Center footer
     encoder.encode(`\n${divider}Thank you for visiting!\nPowered by ServeJoy POS\n\n\n\n`).forEach((b) => bytes.push(b));
 
     // Cut paper command: GS V 65 0

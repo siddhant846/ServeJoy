@@ -49,7 +49,9 @@ interface AppContextType {
     tableNumber?: string;
     discountAmount?: number;
     discountCode?: string;
+    status?: 'paid' | 'pending' | 'void';
   }) => Bill;
+  updateBillStatus: (billId: string, status: 'paid' | 'pending' | 'void', paymentMode?: PaymentMode) => void;
   todayBills: Bill[];
   todayRevenue: number;
   todayProfit: number;
@@ -275,6 +277,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     tableNumber?: string;
     discountAmount?: number;
     discountCode?: string;
+    status?: 'paid' | 'pending' | 'void';
   }): Bill => {
     const subtotal = data.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
     const totalCost = data.items.reduce((sum, i) => sum + i.cost * i.quantity, 0);
@@ -293,19 +296,49 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       discountCode: data.discountCode,
       total: finalTotal,
       profit,
-      paymentMode: data.paymentMode,
+      paymentMode: data.paymentMode || 'upi',
       customerName: data.customerName,
       customerPhone: data.customerPhone,
       tableNumber: data.tableNumber,
-      status: 'paid',
+      status: data.status || 'pending',
     };
 
     setBills((prev) => [newBill, ...prev]);
     setRecentBill(newBill);
-    soundbox.announcePayment(newBill.total, newBill.paymentMode, newBill.tableNumber || newBill.billNumber);
+    if (newBill.status === 'paid') {
+      soundbox.announcePayment(newBill.total, newBill.paymentMode, newBill.tableNumber || newBill.billNumber);
+    }
     cloudSync.pushBill(newBill);
     clearCart();
     return newBill;
+  };
+
+  const updateBillStatus = (
+    billId: string,
+    status: 'paid' | 'pending' | 'void',
+    paymentMode?: PaymentMode
+  ) => {
+    setBills((prev) =>
+      prev.map((b) => {
+        if (b.id === billId) {
+          const updated: Bill = {
+            ...b,
+            status,
+            paymentMode: paymentMode || b.paymentMode,
+          };
+          if (status === 'paid') {
+            soundbox.announcePayment(
+              updated.total,
+              updated.paymentMode,
+              updated.tableNumber || updated.billNumber
+            );
+          }
+          cloudSync.pushBill(updated);
+          return updated;
+        }
+        return b;
+      })
+    );
   };
 
   // Analytics Helpers
@@ -506,6 +539,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         cartTotal,
         bills,
         createBill,
+        updateBillStatus,
         todayBills,
         todayRevenue,
         todayProfit,

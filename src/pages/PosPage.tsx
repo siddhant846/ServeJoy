@@ -12,9 +12,10 @@ import { PrinterManagerModal } from '../components/pos/PrinterManagerModal';
 import { AnalyticsDashboard } from '../components/pos/AnalyticsDashboard';
 import { Bill } from '../types';
 import { Coffee, TrendingUp, History, Printer, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const PosPage: React.FC = () => {
-  const { bills, cafeProfile } = useApp();
+  const { bills, cafeProfile, cart, createBill } = useApp();
 
   const [activeTab, setActiveTab] = useState<'menu' | 'analytics' | 'bills'>('menu');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
@@ -27,13 +28,30 @@ export const PosPage: React.FC = () => {
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState<boolean>(false);
   const [selectedBillForPrint, setSelectedBillForPrint] = useState<Bill | null>(null);
 
-  const handleOpenCheckout = (
+  const handleGenerateBill = (
     table: string,
     customer: { name?: string; phone?: string; note?: string }
   ) => {
-    setCheckoutTable(table);
-    setCheckoutCustomer(customer);
-    setIsCheckoutOpen(true);
+    if (cart.length === 0) return;
+    const items = cart.map((ci) => ({
+      menuItemId: ci.item.id,
+      name: ci.item.name,
+      price: ci.item.price,
+      cost: ci.item.cost,
+      quantity: ci.quantity,
+    }));
+
+    const bill = createBill({
+      items,
+      paymentMode: 'upi',
+      status: 'pending',
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      tableNumber: table,
+    });
+
+    setSelectedBillForPrint(bill);
+    toast.success(`${bill.billNumber} generated! Scan to Pay UPI QR is ready`, { icon: '🧾' });
   };
 
   const handleShareWhatsApp = (bill: Bill) => {
@@ -109,7 +127,7 @@ export const PosPage: React.FC = () => {
 
             {/* Right Column (Cart & Bill Puncher) */}
             <div className="lg:col-span-4 sticky top-20">
-              <CartSheet onOpenCheckout={handleOpenCheckout} />
+              <CartSheet onGenerateBill={handleGenerateBill} />
             </div>
           </div>
         )}
