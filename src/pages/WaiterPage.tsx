@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
-import { Navbar } from '../../components/common/Navbar';
+import { useApp } from '../context/AppContext';
+import { Navbar } from '../components/common/Navbar';
 import {
   UtensilsCrossed,
   Bell,

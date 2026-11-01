@@ -82,6 +82,13 @@ interface AppContextType {
   soundboxSettings: SoundboxSettings;
   updateSoundboxSettings: (settings: SoundboxSettings) => void;
 
+  printers: Printer[];
+  activePrinter: Printer | null;
+  setActivePrinter: (printer: Printer) => void;
+  addPrinter: (name: string, paperWidth?: '58mm' | '80mm') => Printer;
+  removePrinter: (id: string) => void;
+  setDefaultPrinter: (id: string) => void;
+
   isDarkMode: boolean;
   toggleDarkMode: () => void;
 }
@@ -97,6 +104,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [orders, setOrders] = useState<Order[]>(() => storage.getOrders());
   const [waiterRequests, setWaiterRequests] = useState<WaiterRequest[]>(() => storage.getWaiterRequests());
   const [soundboxSettings, setSoundboxSettings] = useState<SoundboxSettings>(() => storage.getSoundboxSettings());
+  const [printers, setPrinters] = useState<Printer[]>(() => storage.getPrinters());
+  const [activePrinter, setActivePrinter] = useState<Printer | null>(() => {
+    const list = storage.getPrinters();
+    return list.find((p) => p.isDefault) || list[0] || null;
+  });
   const [recentBill, setRecentBill] = useState<Bill | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return typeof window !== 'undefined' ? localStorage.getItem('servejoy_theme') === 'dark' : false;
@@ -136,6 +148,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => storage.saveWaiterRequests(waiterRequests), [waiterRequests]);
   useEffect(() => storage.saveNetworkHost(networkHost), [networkHost]);
   useEffect(() => storage.saveSoundboxSettings(soundboxSettings), [soundboxSettings]);
+  useEffect(() => storage.savePrinters(printers), [printers]);
 
   // Cloud Sync setup
   useEffect(() => {
@@ -441,6 +454,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     toast.success('Soundbox settings saved!');
   };
 
+  const addPrinter = (name: string, paperWidth: '58mm' | '80mm' = '58mm'): Printer => {
+    const newPrinter: Printer = {
+      id: `bt_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      name,
+      paperWidth,
+      isDefault: printers.length === 0,
+      connected: true,
+    };
+    setPrinters((prev) => [newPrinter, ...prev]);
+    setActivePrinter(newPrinter);
+    return newPrinter;
+  };
+
+  const removePrinter = (id: string) => {
+    setPrinters((prev) => prev.filter((p) => p.id !== id));
+    if (activePrinter?.id === id) {
+      const remaining = printers.filter((p) => p.id !== id);
+      setActivePrinter(remaining[0] || null);
+    }
+  };
+
+  const setDefaultPrinter = (id: string) => {
+    setPrinters((prev) =>
+      prev.map((p) => ({ ...p, isDefault: p.id === id }))
+    );
+    const target = printers.find((p) => p.id === id);
+    if (target) {
+      setActivePrinter(target);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -481,6 +525,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setNetworkHost,
         soundboxSettings,
         updateSoundboxSettings,
+        printers,
+        activePrinter,
+        setActivePrinter,
+        addPrinter,
+        removePrinter,
+        setDefaultPrinter,
         isDarkMode,
         toggleDarkMode,
       }}

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
-import { Navbar } from '../../components/common/Navbar';
-import { MenuGrid } from '../../components/pos/MenuGrid';
-import { CartSheet } from '../../components/pos/CartSheet';
-import { BillModal } from '../../components/pos/BillModal';
-import { ThermalReceipt } from '../../components/pos/ThermalReceipt';
-import { TableQRModal } from '../../components/pos/TableQRModal';
-import { SoundboxModal } from '../../components/pos/SoundboxModal';
-import { AiDishModal } from '../../components/pos/AiDishModal';
-import { AnalyticsDashboard } from '../../components/pos/AnalyticsDashboard';
-import { Bill } from '../../types';
+import { useApp } from '../context/AppContext';
+import { Navbar } from '../components/common/Navbar';
+import { MenuGrid } from '../components/pos/MenuGrid';
+import { CartSheet } from '../components/pos/CartSheet';
+import { BillModal } from '../components/pos/BillModal';
+import { ThermalReceipt } from '../components/pos/ThermalReceipt';
+import { TableQRModal } from '../components/pos/TableQRModal';
+import { SoundboxModal } from '../components/pos/SoundboxModal';
+import { AiDishModal } from '../components/pos/AiDishModal';
+import { PrinterManagerModal } from '../components/pos/PrinterManagerModal';
+import { AnalyticsDashboard } from '../components/pos/AnalyticsDashboard';
+import { Bill } from '../types';
 import { Coffee, TrendingUp, History, Printer, Share2 } from 'lucide-react';
 
 export const PosPage: React.FC = () => {
@@ -23,6 +24,7 @@ export const PosPage: React.FC = () => {
   const [isQRModalOpen, setIsQRModalOpen] = useState<boolean>(false);
   const [isSoundboxModalOpen, setIsSoundboxModalOpen] = useState<boolean>(false);
   const [isAiDishModalOpen, setIsAiDishModalOpen] = useState<boolean>(false);
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState<boolean>(false);
   const [selectedBillForPrint, setSelectedBillForPrint] = useState<Bill | null>(null);
 
   const handleOpenCheckout = (
@@ -54,6 +56,7 @@ export const PosPage: React.FC = () => {
       <Navbar
         onOpenQRModal={() => setIsQRModalOpen(true)}
         onOpenSoundboxModal={() => setIsSoundboxModalOpen(true)}
+        onOpenPrinterModal={() => setIsPrinterModalOpen(true)}
       />
 
       <main className="mx-auto max-w-7xl px-3 sm:px-6 py-4">
@@ -202,6 +205,11 @@ export const PosPage: React.FC = () => {
       <AiDishModal
         isOpen={isAiDishModalOpen}
         onClose={() => setIsAiDishModalOpen(false)}
+      />
+
+      <PrinterManagerModal
+        isOpen={isPrinterModalOpen}
+        onClose={() => setIsPrinterModalOpen(false)}
       />
     </div>
   );

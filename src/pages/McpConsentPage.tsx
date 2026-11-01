@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../context/AppContext';
 import { Coffee, CheckCircle2, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 

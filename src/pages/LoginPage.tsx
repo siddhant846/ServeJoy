@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../context/AppContext';
 import { Coffee, Lock, KeyRound, ArrowRight, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 

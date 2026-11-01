@@ -12,6 +12,7 @@ import {
   CloudOff,
   QrCode,
   Volume2,
+  Printer,
   RefreshCw,
   LogOut,
 } from 'lucide-react';
@@ -19,9 +20,10 @@ import {
 interface NavbarProps {
   onOpenQRModal?: () => void;
   onOpenSoundboxModal?: () => void;
+  onOpenPrinterModal?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenQRModal, onOpenSoundboxModal }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onOpenQRModal, onOpenSoundboxModal, onOpenPrinterModal }) => {
   const {
     cafeProfile,
     userRole,
@@ -135,6 +137,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenQRModal, onOpenSoundboxMod
               className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground transition"
             >
               <Volume2 className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Thermal Printer Manager */}
+          {onOpenPrinterModal && (
+            <button
+              onClick={onOpenPrinterModal}
+              title="Thermal Printer & Devices Manager"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground transition"
+            >
+              <Printer className="h-4 w-4" />
             </button>
           )}
 

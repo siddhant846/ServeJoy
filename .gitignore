@@ -30,3 +30,8 @@ scratch/
 
 # Binaries & APK backups
 *.apk
+
+# Firebase & build caches
+.firebase/
+*.tsbuildinfo
+

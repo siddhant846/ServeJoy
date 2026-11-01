@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
-import { Navbar } from '../../components/common/Navbar';
+import { useApp } from '../context/AppContext';
+import { Navbar } from '../components/common/Navbar';
 import { ChefHat, Clock, CheckCircle2, Flame, AlertTriangle, Volume2 } from 'lucide-react';
-import { OrderStatus } from '../../types';
+import { OrderStatus } from '../types';
 
 export const KitchenPage: React.FC = () => {
   const { orders, updateOrderStatus, cafeProfile } = useApp();

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
-import { MenuItem } from '../../types';
+import { useApp } from '../context/AppContext';
+import { MenuItem } from '../types';
 import {
   Coffee,
   Plus,
