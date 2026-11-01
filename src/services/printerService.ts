@@ -25,6 +25,7 @@ class ThermalPrinterService {
   private activeDevice: any = null;
   private activeGattServer: any = null;
   private activeCharacteristic: any = null;
+  private activeSerialPort: any = null;
 
   isBluetoothSupported(): boolean {
     if (typeof navigator === 'undefined') return false;
@@ -32,9 +33,13 @@ class ThermalPrinterService {
     return !!(nav.bluetooth && typeof nav.bluetooth.requestDevice === 'function');
   }
 
-  getPlatformInfo(): { isIOS: boolean; isAndroid: boolean; browserName: string } {
+  isSerialSupported(): boolean {
+    return typeof navigator !== 'undefined' && 'serial' in navigator;
+  }
+
+  getPlatformInfo(): { isIOS: boolean; isAndroid: boolean; browserName: string; hasSerial: boolean } {
     if (typeof navigator === 'undefined') {
-      return { isIOS: false, isAndroid: false, browserName: 'Unknown' };
+      return { isIOS: false, isAndroid: false, browserName: 'Unknown', hasSerial: false };
     }
     const ua = navigator.userAgent || '';
     const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -45,7 +50,47 @@ class ThermalPrinterService {
     else if (/Edg/.test(ua)) browserName = 'Microsoft Edge';
     else if (/Bluefy/.test(ua)) browserName = 'Bluefy BLE';
 
-    return { isIOS, isAndroid, browserName };
+    const hasSerial = 'serial' in navigator;
+    return { isIOS, isAndroid, browserName, hasSerial };
+  }
+
+  async pairSerialPrinter(): Promise<{ success: boolean; printer?: Printer; error?: string }> {
+    if (!this.isSerialSupported()) {
+      return { success: false, error: 'Web Serial API is not supported in this browser. Please use Google Chrome or Microsoft Edge.' };
+    }
+    try {
+      const nav = navigator as any;
+      const port = await nav.serial.requestPort();
+      if (!port) return { success: false, error: 'No serial/COM port selected.' };
+
+      try {
+        await port.open({ baudRate: 9600 });
+      } catch (openErr: any) {
+        console.warn('Port open notice:', openErr);
+      }
+
+      this.activeSerialPort = port;
+      const printerName = 'MPT-II (Serial / USB / Paired BT)';
+      const newPrinter: Printer = {
+        id: `serial_${Date.now()}`,
+        name: printerName,
+        paperWidth: '58mm',
+        isDefault: true,
+        connected: true,
+      };
+
+      const existing = storage.getPrinters().filter((p) => p.name !== printerName && p.id !== newPrinter.id);
+      const updated = [newPrinter, ...existing.map((p) => ({ ...p, isDefault: false }))];
+      storage.savePrinters(updated);
+
+      return { success: true, printer: newPrinter };
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('cancelled') || msg.includes('cancel') || msg.includes('No port selected')) {
+        return { success: false, error: 'Serial/COM port selection cancelled.' };
+      }
+      return { success: false, error: msg };
+    }
   }
 
   async pairNewPrinter(): Promise<{ success: boolean; printer?: Printer; error?: string }> {
@@ -157,6 +202,28 @@ class ThermalPrinterService {
   }
 
   async printEscPosBytes(bytes: Uint8Array, printerName = 'Thermal ESC/POS'): Promise<PrintResult> {
+    // 1. Try active Web Serial port if connected (ideal for MPT-II / USB / Windows Bluetooth COM)
+    if (this.activeSerialPort) {
+      try {
+        if (!this.activeSerialPort.writable) {
+          await this.activeSerialPort.open({ baudRate: 9600 });
+        }
+        if (this.activeSerialPort.writable) {
+          const writer = this.activeSerialPort.writable.getWriter();
+          await writer.write(bytes);
+          writer.releaseLock();
+          return {
+            success: true,
+            message: `Printed ${bytes.length} bytes to [${printerName}] via Serial / USB!`,
+            bytesSent: bytes.length,
+            isSimulated: false,
+          };
+        }
+      } catch (serialErr: any) {
+        console.warn('Serial print error, checking Bluetooth:', serialErr);
+      }
+    }
+
     if (!this.isBluetoothSupported()) {
       const { isIOS } = this.getPlatformInfo();
       if (isIOS) {
@@ -361,3 +428,4 @@ class ThermalPrinterService {
 }
 
 export const thermalPrinter = new ThermalPrinterService();
+

@@ -28,12 +28,13 @@ export const PrinterManagerModal: React.FC<PrinterManagerModalProps> = ({ isOpen
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [showManualAdd, setShowManualAdd] = useState<boolean>(false);
-  const [manualName, setManualName] = useState<string>('PeriPage A6 58mm');
+  const [manualName, setManualName] = useState<string>('MPT-II');
   const [manualWidth, setManualWidth] = useState<'58mm' | '80mm'>('58mm');
 
   if (!isOpen) return null;
 
   const isBleSupported = thermalPrinter.isBluetoothSupported();
+  const isSerialSupported = thermalPrinter.isSerialSupported();
   const { isIOS, browserName } = thermalPrinter.getPlatformInfo();
 
   const handleScanAndPair = async () => {
@@ -48,6 +49,23 @@ export const PrinterManagerModal: React.FC<PrinterManagerModalProps> = ({ isOpen
       }
     } catch (e: any) {
       toast.error('Bluetooth search failed: ' + (e.message || String(e)));
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handlePairSerial = async () => {
+    setIsScanning(true);
+    try {
+      const res = await thermalPrinter.pairSerialPrinter();
+      if (res.success && res.printer) {
+        toast.success(`Connected: ${res.printer.name}!`, { icon: '🔌' });
+        setActivePrinter(res.printer);
+      } else {
+        toast.error(res.error || 'Serial/COM port selection was not completed.');
+      }
+    } catch (e: any) {
+      toast.error('Connection failed: ' + (e.message || String(e)));
     } finally {
       setIsScanning(false);
     }
@@ -250,23 +268,40 @@ export const PrinterManagerModal: React.FC<PrinterManagerModalProps> = ({ isOpen
 
         {/* Scan & Pair Button */}
         <div className="mt-4 pt-3 border-t border-border space-y-2">
-          <button
-            onClick={handleScanAndPair}
-            disabled={isScanning}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-3 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-98 disabled:opacity-50"
-          >
-            {isScanning ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Searching for Bluetooth Printers...</span>
-              </>
-            ) : (
-              <>
-                <Bluetooth className="h-4 w-4" />
-                <span>Pair New Bluetooth Printer</span>
-              </>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              onClick={handleScanAndPair}
+              disabled={isScanning}
+              className="flex items-center justify-center gap-2 rounded-2xl bg-accent py-3 px-2 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-98 disabled:opacity-50"
+            >
+              {isScanning ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Scanning BLE...</span>
+                </>
+              ) : (
+                <>
+                  <Bluetooth className="h-4 w-4" />
+                  <span>Pair Bluetooth (BLE)</span>
+                </>
+              )}
+            </button>
+
+            {isSerialSupported && (
+              <button
+                onClick={handlePairSerial}
+                disabled={isScanning}
+                className="flex items-center justify-center gap-1.5 rounded-2xl bg-secondary py-3 px-2 text-xs font-bold text-foreground border border-border shadow-sm hover:bg-muted transition active:scale-98 disabled:opacity-50"
+                title="Connect via Serial Port / USB / Windows Paired Bluetooth COM port"
+              >
+                <span>🔌 Connect COM / USB</span>
+              </button>
             )}
-          </button>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground text-center leading-tight pt-1">
+            💡 <strong>Paired MPT-II in Windows?</strong> Windows connects it as a COM port. Click <em>Connect COM / USB</em>, or configure it in <em>Manual Add</em> below.
+          </p>
 
           {/* Toggle Manual Add */}
           <div className="text-center pt-1">
@@ -333,3 +368,4 @@ export const PrinterManagerModal: React.FC<PrinterManagerModalProps> = ({ isOpen
     </div>
   );
 };
+
