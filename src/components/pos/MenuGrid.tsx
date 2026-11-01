@@ -81,12 +81,17 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
           return (
             <div
               key={item.id}
-              className={`group flex flex-col justify-between overflow-hidden rounded-3xl border border-border bg-card p-3 shadow-card transition hover:shadow-elevated hover:border-accent/40 ${
-                !item.isAvailable ? 'opacity-60' : ''
+              onClick={() => {
+                if (item.isAvailable) {
+                  addToCart(item);
+                }
+              }}
+              className={`group flex flex-col justify-between overflow-hidden rounded-3xl border border-border bg-card p-3 shadow-card transition hover:shadow-elevated hover:border-accent/40 cursor-pointer active:scale-[0.98] select-none ${
+                !item.isAvailable ? 'opacity-60 cursor-not-allowed' : ''
               }`}
             >
-              {/* Image & Badges */}
-              <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-secondary">
+              {/* Image & Badges - Expanded aspect ratio filling space without expanding card */}
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-secondary">
                 <img
                   src={item.imageUrl}
                   alt={item.name}
@@ -108,21 +113,18 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
                 )}
               </div>
 
-              {/* Title & Description */}
-              <div className="mt-3 flex-1 flex flex-col justify-between">
+              {/* Title (Description removed to maximize image area) */}
+              <div className="mt-2.5 flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-start justify-between gap-1">
                     <h3 className="font-display text-sm font-bold text-foreground leading-snug line-clamp-1">
                       {item.emoji} {item.name}
                     </h3>
                   </div>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    {item.description}
-                  </p>
                 </div>
 
                 {/* Price & Add to Cart */}
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/50">
+                <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border/50">
                   <div className="flex items-baseline gap-0.5">
                     <span className="text-xs font-bold text-accent">{cafeProfile.currency}</span>
                     <span className="font-display text-base font-extrabold text-foreground">
@@ -131,25 +133,40 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
                   </div>
 
                   {qty > 0 ? (
-                    <div className="flex items-center gap-2 rounded-xl bg-accent px-2 py-1 text-white shadow-sm">
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-2 rounded-xl bg-accent px-2 py-1 text-white shadow-sm"
+                    >
                       <button
-                        onClick={() => updateCartQuantity(item.id, qty - 1)}
-                        className="flex h-5 w-5 items-center justify-center rounded-lg hover:bg-black/20 transition"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateCartQuantity(item.id, qty - 1);
+                        }}
+                        className="flex h-5 w-5 items-center justify-center rounded-lg hover:bg-black/20 transition active:scale-90"
                       >
                         <Minus className="h-3 w-3" />
                       </button>
                       <span className="text-xs font-bold min-w-3 text-center">{qty}</span>
                       <button
-                        onClick={() => updateCartQuantity(item.id, qty + 1)}
-                        className="flex h-5 w-5 items-center justify-center rounded-lg hover:bg-black/20 transition"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateCartQuantity(item.id, qty + 1);
+                        }}
+                        className="flex h-5 w-5 items-center justify-center rounded-lg hover:bg-black/20 transition active:scale-90"
                       >
                         <Plus className="h-3 w-3" />
                       </button>
                     </div>
                   ) : (
                     <button
+                      type="button"
                       disabled={!item.isAvailable}
-                      onClick={() => addToCart(item)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(item);
+                      }}
                       className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent hover:text-white transition active:scale-95 disabled:pointer-events-none"
                     >
                       <Plus className="h-3.5 w-3.5" />
