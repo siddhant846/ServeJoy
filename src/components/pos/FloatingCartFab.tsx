@@ -14,9 +14,10 @@ export const FloatingCartFab: React.FC<FloatingCartFabProps> = ({ onClick }) => 
   return (
     <div
       id="mobile-cart-target"
-      className="fixed bottom-20 right-4 z-40 sm:right-6 lg:bottom-8 lg:right-10"
+      className="fixed bottom-24 right-5 sm:right-8 lg:right-10 z-50"
     >
       <button
+        id="pos-cart-target"
         onClick={onClick}
         aria-label="View Cart"
         className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-elevated transition-transform hover:scale-105 active:scale-95 animate-cart-bounce"

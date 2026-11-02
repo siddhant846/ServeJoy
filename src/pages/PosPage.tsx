@@ -85,7 +85,7 @@ export const PosPage: React.FC = () => {
       <main className="mx-auto max-w-7xl px-3 sm:px-6 py-3.5">
         {/* ================= TAB 1: HOME ================= */}
         {currentTab === 'home' && (
-          <div className="space-y-4 pb-24">
+          <div className="space-y-4 pb-36">
             {/* Top Sub-Tab Switcher: POS Menu & Fast Billing vs Visual Floor Plan */}
             <div className="flex items-center justify-between rounded-2xl bg-secondary/80 p-1 border border-border/80 shadow-sm">
               <button
