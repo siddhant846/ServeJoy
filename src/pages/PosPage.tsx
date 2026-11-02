@@ -6,7 +6,6 @@ import { TodaySummary } from '../components/pos/TodaySummary';
 import { FloorPlan } from '../components/pos/FloorPlan';
 import { MenuGrid } from '../components/pos/MenuGrid';
 import { CartSheet } from '../components/pos/CartSheet';
-import { CartModal } from '../components/pos/CartModal';
 import { FloatingCartFab } from '../components/pos/FloatingCartFab';
 import { OrdersTab } from '../components/tabs/OrdersTab';
 import { AddTab } from '../components/tabs/AddTab';
@@ -135,19 +134,12 @@ export const PosPage: React.FC = () => {
                 {/* Today's Summary Collapsible Business Card */}
                 <TodaySummary />
 
-                {/* Layout: Grid of Dishes (and Desktop Cart Side-by-side on wide screens) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-                  <div className="lg:col-span-8">
-                    <MenuGrid onOpenAiDishModal={() => setIsAiDishModalOpen(true)} />
-                  </div>
-
-                  {/* Desktop Cart Sheet */}
-                  <div className="hidden lg:block lg:col-span-4 sticky top-20">
-                    <CartSheet onGenerateBill={handleGenerateBill} />
-                  </div>
+                {/* Full-width Menu Grid */}
+                <div className="w-full">
+                  <MenuGrid onOpenAiDishModal={() => setIsAiDishModalOpen(true)} />
                 </div>
 
-                {/* Mobile Floating Cart FAB */}
+                {/* Floating Cart Button (Appears only when items are in cart) */}
                 <FloatingCartFab onClick={() => setIsCartModalOpen(true)} />
               </div>
             )}
@@ -182,12 +174,25 @@ export const PosPage: React.FC = () => {
       {/* Persistent Bottom Navigation Bar (7 Tabs) */}
       <BottomNav currentTab={currentTab} onTabChange={(tab) => setCurrentTab(tab)} />
 
+      {/* Current Order Modal / Sheet - Appears ONLY after clicking the Cart FAB */}
+      {isCartModalOpen && (
+        <div
+          onClick={() => setIsCartModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg max-h-[92vh] overflow-y-auto animate-slide-up"
+          >
+            <CartSheet
+              onGenerateBill={handleGenerateBill}
+              onClose={() => setIsCartModalOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Global Modals */}
-      <CartModal
-        isOpen={isCartModalOpen}
-        onClose={() => setIsCartModalOpen(false)}
-        onBillGenerated={(bill) => setSelectedBillForPrint(bill)}
-      />
 
       <ThermalReceipt
         bill={selectedBillForPrint}

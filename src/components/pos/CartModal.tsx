@@ -212,3 +212,4 @@ export const CartModal: React.FC<CartModalProps> = ({
     </div>
   );
 };
+

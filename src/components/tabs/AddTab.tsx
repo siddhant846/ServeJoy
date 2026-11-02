@@ -202,3 +202,4 @@ export const AddTab: React.FC<AddTabProps> = ({ onOpenAiDishModal }) => {
     </div>
   );
 };
+

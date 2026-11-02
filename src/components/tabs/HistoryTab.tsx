@@ -117,3 +117,4 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ onSelectBillForReceipt }
     </div>
   );
 };
+

@@ -241,3 +241,4 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ onOpenReceipt }) => {
     </div>
   );
 };
+

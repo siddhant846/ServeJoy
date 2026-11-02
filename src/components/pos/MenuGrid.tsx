@@ -33,19 +33,13 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
       startY = rect.top + rect.height / 2;
     }
 
-    // Determine target coordinates (mobile bottom bar if screen < 1024, or desktop cart icon)
+    // Determine target coordinates (floating cart FAB button or bottom-right corner)
     let endX = window.innerWidth - 60;
-    let endY = 80;
+    let endY = window.innerHeight - 80;
 
-    const desktopTarget = document.getElementById('pos-cart-target');
-    const mobileTarget = document.getElementById('mobile-cart-target');
-
-    if (mobileTarget && window.innerWidth < 1024) {
-      const rect = mobileTarget.getBoundingClientRect();
-      endX = rect.left + rect.width / 2;
-      endY = rect.top + rect.height / 2;
-    } else if (desktopTarget) {
-      const rect = desktopTarget.getBoundingClientRect();
+    const fabTarget = document.getElementById('mobile-cart-target') || document.getElementById('pos-cart-target');
+    if (fabTarget) {
+      const rect = fabTarget.getBoundingClientRect();
       endX = rect.left + rect.width / 2;
       endY = rect.top + rect.height / 2;
     }

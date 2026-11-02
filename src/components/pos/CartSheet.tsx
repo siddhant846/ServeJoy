@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ShoppingBag, Trash2, Plus, Minus, ChefHat, Receipt, Tag, User, Phone } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Minus, ChefHat, Receipt, Tag, User, Phone, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CartSheetProps {
   onGenerateBill: (table: string, customer: { name?: string; phone?: string; note?: string }) => void;
+  onClose?: () => void;
 }
 
-export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill }) => {
+export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose }) => {
   const {
     cart,
     updateCartQuantity,
@@ -63,6 +64,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill }) => {
     toast.success(`KOT sent to kitchen for ${selectedTable}!`, { icon: '🍳' });
     clearCart();
     setCustomerNote('');
+    if (onClose) onClose();
   };
 
   const handleGenerateBill = () => {
@@ -70,6 +72,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill }) => {
       toast.error('Cart is empty!');
       return;
     }
+    if (onClose) onClose();
     onGenerateBill(selectedTable, {
       name: customerName,
       phone: customerPhone,
@@ -96,15 +99,27 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill }) => {
           </div>
         </div>
 
-        {cart.length > 0 && (
-          <button
-            onClick={clearCart}
-            className="flex items-center gap-1 text-[11px] font-bold text-destructive hover:underline"
-          >
-            <Trash2 className="h-3 w-3" />
-            <span>Clear</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {cart.length > 0 && (
+            <button
+              onClick={clearCart}
+              className="flex items-center gap-1 text-[11px] font-bold text-destructive hover:underline"
+            >
+              <Trash2 className="h-3 w-3" />
+              <span>Clear</span>
+            </button>
+          )}
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-muted transition active:scale-90"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table Selector */}
