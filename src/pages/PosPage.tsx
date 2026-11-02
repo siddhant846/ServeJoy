@@ -82,7 +82,7 @@ export const PosPage: React.FC = () => {
         onOpenPrinterModal={() => setIsPrinterModalOpen(true)}
       />
 
-      <main className="mx-auto max-w-7xl px-3 sm:px-6 py-3.5">
+      <main className="mx-auto max-w-[1720px] px-3.5 sm:px-6 lg:px-10 py-4">
         {/* ================= TAB 1: HOME ================= */}
         {currentTab === 'home' && (
           <div className="space-y-4 pb-36">

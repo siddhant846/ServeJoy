@@ -60,7 +60,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-card/95 backdrop-blur-md pb-[max(0.25rem,env(safe-area-inset-bottom))] shadow-elevated">
-      <div className="mx-auto flex max-w-md items-center justify-around px-1 py-1 sm:px-4 sm:py-2 lg:max-w-4xl">
+      <div className="mx-auto flex max-w-md items-center justify-around px-1 py-1 sm:px-4 sm:py-2 lg:max-w-5xl xl:max-w-6xl">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
