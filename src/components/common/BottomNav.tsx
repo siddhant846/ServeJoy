@@ -67,8 +67,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
           return (
             <button
               key={tab.id}
+              aria-label={tab.label}
               onClick={() => onTabChange(tab.id)}
-              className={`group relative flex flex-1 flex-col items-center justify-center py-1 transition-all active:scale-95 ${
+              className={`group relative flex flex-1 flex-col items-center justify-center py-1.5 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-xl ${
                 isActive ? 'text-accent font-bold' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -79,7 +80,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
                   }`}
                 />
                 {!!(tab.badge && tab.badge > 0) && (
-                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-white shadow-sm animate-badge-pulse">
+                  <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-receipt text-[9px] font-bold text-white shadow-sm animate-badge-pulse">
                     {tab.badge}
                   </span>
                 )}

@@ -110,7 +110,7 @@ export const TodaySummary: React.FC = () => {
           ) : (
             <div className="flex items-center justify-between pt-1">
               <span>
-                Sales: <strong className="text-foreground">{cafeProfile.currency}{todayRevenue}</strong> ({todayBills.length} bills)
+                Sales: <strong className="font-receipt font-bold text-foreground">{cafeProfile.currency}{todayRevenue}</strong> ({todayBills.length} bills)
               </span>
               <span
                 className="text-accent text-[11px] font-medium underline cursor-pointer"

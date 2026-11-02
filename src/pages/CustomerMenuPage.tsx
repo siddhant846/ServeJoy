@@ -188,7 +188,7 @@ export const CustomerMenuPage: React.FC = () => {
                     alt={item.name}
                     className="h-full w-full object-cover"
                   />
-                  <span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.2 text-[9px] font-bold text-white">
+                  <span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
                     {item.emoji}
                   </span>
                 </div>
@@ -204,7 +204,7 @@ export const CustomerMenuPage: React.FC = () => {
                   </div>
 
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="font-display text-sm font-extrabold text-foreground">
+                    <span className="font-receipt text-sm font-bold text-foreground">
                       {cafeProfile.currency}
                       {item.price}
                     </span>

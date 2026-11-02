@@ -58,7 +58,7 @@ export const AddTab: React.FC<AddTabProps> = ({ onOpenAiDishModal }) => {
   };
 
   return (
-    <div className="mx-auto max-w-md px-3.5 py-4 lg:max-w-4xl pb-24 space-y-5 animate-fade-in">
+    <div className="w-full max-w-4xl mx-auto pb-36 space-y-5 animate-fade-in">
       {/* AI Assistant Banner */}
       <div className="rounded-3xl bg-gradient-to-r from-[#3a1e12] to-[#592b18] p-5 text-white shadow-elevated">
         <h2 className="font-display text-xl font-bold tracking-tight">Menu Manager</h2>

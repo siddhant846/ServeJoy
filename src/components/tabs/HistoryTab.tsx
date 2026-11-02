@@ -22,7 +22,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ onSelectBillForReceipt }
   });
 
   return (
-    <div className="mx-auto max-w-md px-3.5 py-4 lg:max-w-4xl pb-24 space-y-4 animate-fade-in">
+    <div className="w-full pb-36 space-y-4 animate-fade-in">
       {/* Title */}
       <div>
         <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
@@ -55,7 +55,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ onSelectBillForReceipt }
           </p>
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {filteredBills.map((bill) => (
             <div
               key={bill.id}

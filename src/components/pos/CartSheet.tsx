@@ -170,7 +170,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
                   <h4 className="text-xs font-bold text-foreground leading-tight line-clamp-1">
                     {item.name}
                   </h4>
-                  <p className="text-[11px] font-bold text-accent mt-0.5">
+                  <p className="font-receipt text-[11px] font-bold text-accent mt-0.5">
                     {cafeProfile.currency}
                     {item.price * quantity}
                   </p>
@@ -178,19 +178,23 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
               </div>
 
               {/* Stepper */}
-              <div className="flex items-center gap-1.5 rounded-xl bg-card px-1.5 py-0.5 border border-border">
+              <div className="flex items-center gap-1 rounded-xl bg-card px-1 py-0.5 border border-border">
                 <button
+                  type="button"
+                  aria-label={`Decrease ${item.name}`}
                   onClick={() => updateCartQuantity(item.id, quantity - 1)}
-                  className="flex h-5 w-5 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition active:scale-90"
                 >
-                  <Minus className="h-3 w-3" />
+                  <Minus className="h-3.5 w-3.5" />
                 </button>
-                <span className="text-xs font-bold min-w-3 text-center">{quantity}</span>
+                <span className="font-receipt text-xs font-bold min-w-4 text-center select-none">{quantity}</span>
                 <button
+                  type="button"
+                  aria-label={`Increase ${item.name}`}
                   onClick={() => updateCartQuantity(item.id, quantity + 1)}
-                  className="flex h-5 w-5 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary transition"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition active:scale-90"
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -205,7 +209,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
           placeholder="Special Instructions / Chef note (optional)"
           value={customerNote}
           onChange={(e) => setCustomerNote(e.target.value)}
-          className="w-full rounded-xl border border-border bg-secondary/50 px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+          className="w-full rounded-xl border border-border bg-secondary/50 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent input-glow-orange"
         />
       </div>
 
@@ -213,17 +217,17 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
       <div className="mt-3 border-t border-border/60 pt-3 space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="font-semibold text-muted-foreground">Order Total:</span>
-          <span className="font-display text-base font-extrabold text-foreground">
+          <span className="font-receipt text-lg font-extrabold text-foreground">
             {cafeProfile.currency}
             {cartTotal}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-1">
+        <div className="grid grid-cols-2 gap-2.5 pt-1">
           <button
             onClick={handlePunchKot}
             disabled={cart.length === 0}
-            className="flex items-center justify-center gap-1.5 rounded-2xl bg-secondary py-2.5 text-xs font-bold text-foreground hover:bg-muted transition active:scale-95 disabled:opacity-40"
+            className="flex items-center justify-center gap-1.5 rounded-2xl bg-secondary py-3 min-h-[44px] text-xs font-bold text-foreground border border-border/60 hover:bg-muted transition active:scale-98 disabled:opacity-40"
           >
             <ChefHat className="h-4 w-4 text-orange-600" />
             <span>Punch KOT</span>
@@ -232,7 +236,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
           <button
             onClick={handleGenerateBill}
             disabled={cart.length === 0}
-            className="flex items-center justify-center gap-1.5 rounded-2xl bg-accent py-2.5 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-95 disabled:opacity-40"
+            className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-[#ea580c] to-[#f97316] py-3 min-h-[44px] text-xs font-bold text-white shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:brightness-105 transition active:scale-98 disabled:opacity-40"
           >
             <Receipt className="h-4 w-4" />
             <span>Bill & Pay</span>

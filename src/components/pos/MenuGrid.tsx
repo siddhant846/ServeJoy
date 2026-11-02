@@ -188,7 +188,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
                 <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border/50">
                   <div className="flex items-baseline gap-0.5">
                     <span className="text-xs font-bold text-accent">{cafeProfile.currency}</span>
-                    <span className="font-display text-base font-extrabold text-foreground">
+                    <span className="font-receipt text-base font-bold text-foreground">
                       {item.price}
                     </span>
                   </div>
@@ -196,41 +196,44 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
                   {qty > 0 ? (
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-2 rounded-xl bg-accent px-2 py-1 text-white shadow-sm"
+                      className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#ea580c] to-[#f97316] px-1 py-1 text-white shadow-sm"
                     >
                       <button
                         type="button"
+                        aria-label={`Decrease quantity of ${item.name}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           updateCartQuantity(item.id, qty - 1);
                         }}
-                        className="flex h-5 w-5 items-center justify-center rounded-lg hover:bg-black/20 transition active:scale-90"
+                        className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-black/20 transition active:scale-90"
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-3.5 w-3.5 stroke-[2.5]" />
                       </button>
-                      <span className="text-xs font-bold min-w-3 text-center">{qty}</span>
+                      <span className="font-receipt text-xs font-bold min-w-4 text-center select-none">{qty}</span>
                       <button
                         type="button"
+                        aria-label={`Increase quantity of ${item.name}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           triggerFlyAnimation(e, item);
                           updateCartQuantity(item.id, qty + 1);
                         }}
-                        className="flex h-5 w-5 items-center justify-center rounded-lg hover:bg-black/20 transition active:scale-90"
+                        className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-black/20 transition active:scale-90"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
                       </button>
                     </div>
                   ) : (
                     <button
                       type="button"
                       disabled={!item.isAvailable}
+                      aria-label={`Add ${item.name} to order`}
                       onClick={(e) => {
                         e.stopPropagation();
                         triggerFlyAnimation(e, item);
                         addToCart(item);
                       }}
-                      className="flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent hover:text-white transition active:scale-95 disabled:pointer-events-none"
+                      className="flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-1.5 min-h-[32px] text-xs font-bold text-foreground hover:bg-accent hover:text-white transition active:scale-95 disabled:pointer-events-none"
                     >
                       <ShoppingBag className="h-3.5 w-3.5" />
                       <span>Add</span>

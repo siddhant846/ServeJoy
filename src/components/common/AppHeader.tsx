@@ -45,7 +45,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 Hi, {cafeProfile.ownerName || 'Siddhant'}
               </span>
               {userRole !== 'owner' && (
-                <span className="rounded bg-black/40 px-1.5 py-0.2 text-[9px] uppercase font-bold text-amber-400 border border-amber-500/20 shrink-0">
+                <span className="rounded bg-black/40 px-1.5 py-0.5 text-[9px] uppercase font-bold text-amber-400 border border-amber-500/20 shrink-0">
                   {userRole}
                 </span>
               )}

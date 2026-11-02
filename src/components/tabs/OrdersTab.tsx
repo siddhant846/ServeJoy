@@ -61,7 +61,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ onOpenReceipt }) => {
   };
 
   return (
-    <div className="mx-auto max-w-md px-3.5 py-4 lg:max-w-4xl pb-24 space-y-4 animate-fade-in">
+    <div className="w-full pb-36 space-y-4 animate-fade-in">
       {/* Title */}
       <div className="flex items-center justify-between">
         <div>
@@ -107,7 +107,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ onOpenReceipt }) => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4.5">
           {filteredOrders.map((order) => {
             const isDelayed = Date.now() - new Date(order.createdAt).getTime() > 15 * 60 * 1000;
             const badge = getStatusBadge(order.status);

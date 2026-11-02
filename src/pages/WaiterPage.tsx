@@ -93,10 +93,10 @@ export const WaiterPage: React.FC<WaiterPageProps> = ({ hideNavbar = false }) =>
   );
 
   return (
-    <div className={hideNavbar ? "pb-24 space-y-4" : "min-h-screen bg-background"}>
+    <div className={hideNavbar ? "pb-36 space-y-4" : "min-h-screen bg-background pb-12"}>
       {!hideNavbar && <Navbar />}
 
-      <main className="mx-auto max-w-7xl px-3 sm:px-6 py-4 space-y-4">
+      <main className="mx-auto max-w-[1720px] px-3.5 sm:px-6 lg:px-10 py-4 space-y-4">
         {/* Real-time Waiter Service Requests Alert Feed */}
         {pendingRequests.length > 0 && (
           <div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-4 shadow-sm animate-fade-in">
@@ -185,29 +185,35 @@ export const WaiterPage: React.FC<WaiterPageProps> = ({ hideNavbar = false }) =>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 rounded-xl bg-secondary px-1.5 py-0.5">
+                    <div className="flex items-center gap-1.5 rounded-full bg-secondary p-1">
                       {qty > 0 ? (
                         <>
                           <button
+                            type="button"
+                            aria-label={`Decrease ${item.name}`}
                             onClick={() => handleRemoveItem(item.id)}
-                            className="h-5 w-5 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-black/10"
+                            className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-black/10 transition active:scale-90"
                           >
-                            <Minus className="h-3 w-3" />
+                            <Minus className="h-3.5 w-3.5" />
                           </button>
-                          <span className="text-xs font-bold min-w-3 text-center">{qty}</span>
+                          <span className="font-receipt text-xs font-bold min-w-4 text-center select-none">{qty}</span>
                           <button
+                            type="button"
+                            aria-label={`Increase ${item.name}`}
                             onClick={() => handleAddItem(item.id)}
-                            className="h-5 w-5 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-black/10"
+                            className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-black/10 transition active:scale-90"
                           >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-3.5 w-3.5" />
                           </button>
                         </>
                       ) : (
                         <button
+                          type="button"
+                          aria-label={`Add ${item.name}`}
                           onClick={() => handleAddItem(item.id)}
-                          className="flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-foreground hover:text-accent"
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-foreground hover:bg-accent hover:text-white rounded-full transition active:scale-95"
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-3.5 w-3.5" />
                           <span>Add</span>
                         </button>
                       )}

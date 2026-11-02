@@ -32,10 +32,10 @@ export const KitchenPage: React.FC<KitchenPageProps> = ({ hideNavbar = false }) 
   };
 
   return (
-    <div className={hideNavbar ? "pb-24 space-y-4" : "min-h-screen bg-background"}>
+    <div className={hideNavbar ? "pb-36 space-y-4" : "min-h-screen bg-background pb-12"}>
       {!hideNavbar && <Navbar />}
 
-      <main className="mx-auto max-w-7xl px-3 sm:px-6 py-4 space-y-4">
+      <main className="mx-auto max-w-[1720px] px-3.5 sm:px-6 lg:px-10 py-4 space-y-4">
         {/* Top Header & Filter Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
           <div className="flex items-center gap-2.5">
@@ -69,7 +69,7 @@ export const KitchenPage: React.FC<KitchenPageProps> = ({ hideNavbar = false }) 
         </div>
 
         {/* KOT Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4.5">
           {filteredOrders.map((order) => {
             const delayed = isDelayed(order.createdAt);
             return (
