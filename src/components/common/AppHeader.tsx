@@ -1,5 +1,7 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { subscriptionService } from '../../services/subscriptionService';
 import {
   Coffee,
   RefreshCw,
@@ -8,6 +10,7 @@ import {
   Printer,
   Sparkles,
   Settings,
+  Clock,
 } from 'lucide-react';
 
 interface AppHeaderProps {
@@ -24,6 +27,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenSettingsModal,
 }) => {
   const { cafeProfile, userRole, syncStatus, syncAll, soundboxSettings } = useApp();
+  const subInfo = subscriptionService.getSubscriptionInfo(cafeProfile.id);
 
   return (
     <header className="sticky top-0 z-30 w-full bg-gradient-to-r from-[#221008] via-[#33170c] to-[#221008] text-white border-b border-amber-950/60 shadow-md backdrop-blur-md pt-[max(env(safe-area-inset-top,0px),0.5rem)] pb-2.5">
@@ -39,9 +43,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <h1 className="font-display text-base sm:text-lg font-black tracking-tight text-white drop-shadow-sm truncate">
                 {cafeProfile.name}
               </h1>
-              <span className="flex items-center gap-0.5 rounded-full bg-amber-500/25 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-amber-300 border border-amber-500/35 shrink-0">
-                <Sparkles className="h-2.5 w-2.5" /> PRO
-              </span>
+              {subInfo.isTrial ? (
+                <Link
+                  to="/pricing"
+                  title={`${subInfo.daysRemaining} days remaining on 7-Day Free Trial. Click to view plans.`}
+                  className="flex items-center gap-1 rounded-full bg-amber-500/25 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-amber-300 border border-amber-500/35 shrink-0 hover:bg-amber-500/35 transition"
+                >
+                  <Clock className="h-2.5 w-2.5" />
+                  <span>Trial: {subInfo.daysRemaining}d</span>
+                </Link>
+              ) : (
+                <span className="flex items-center gap-0.5 rounded-full bg-amber-500/25 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-amber-300 border border-amber-500/35 shrink-0">
+                  <Sparkles className="h-2.5 w-2.5" /> {cafeProfile.subscriptionTier.toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-amber-200/80">
               <span className="font-medium truncate">

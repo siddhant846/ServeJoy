@@ -1,4 +1,18 @@
-import { CafeProfile, MenuItem, Bill, Order, Staff, Printer, SoundboxSettings, AiCredits, WaiterRequest } from '../types';
+import {
+  CafeProfile,
+  MenuItem,
+  Bill,
+  Order,
+  Staff,
+  Printer,
+  SoundboxSettings,
+  AiCredits,
+  WaiterRequest,
+  BusinessAccount,
+  SubscriptionDetails,
+  AuthUser,
+  SubscriptionTier,
+} from '../types';
 
 export const STORAGE_KEYS = {
   CAFE: 'servejoy_cafe_profile',
@@ -13,6 +27,9 @@ export const STORAGE_KEYS = {
   SOUNDBOX: 'servejoy_soundbox_settings',
   WAITER_REQUESTS: 'servejoy_waiter_requests',
   NETWORK_HOST: 'servejoy_network_host',
+  AUTH_USER: 'servejoy_auth_user',
+  ACTIVE_BIZ: 'servejoy_active_business_id',
+  BUSINESSES: 'servejoy_business_registry',
 };
 
 export const DEFAULT_CAFE_PROFILE: CafeProfile = {
@@ -268,13 +285,64 @@ export const DEFAULT_ORDERS: Order[] = [
 export const DEFAULT_STAFF: Staff[] = [
   {
     id: 'staff_01',
+    businessId: 'cafe_chai_point_01',
     name: 'Rahul Sharma',
     email: 'rahul@chaipoint.com',
     role: 'cashier',
     pin: '1234',
+    active: true,
+    createdAt: '2026-09-01T10:00:00Z',
+  },
+  {
+    id: 'staff_02',
+    businessId: 'cafe_chai_point_01',
+    name: 'Amit Patel',
+    email: 'amit@chaipoint.com',
+    role: 'waiter',
+    pin: '5678',
+    active: true,
+    createdAt: '2026-09-01T10:00:00Z',
+  },
+  {
+    id: 'staff_03',
+    businessId: 'cafe_chai_point_01',
+    name: 'Chef Ramesh',
+    email: 'ramesh@chaipoint.com',
+    role: 'kitchen',
+    pin: '9999',
+    active: true,
     createdAt: '2026-09-01T10:00:00Z',
   },
 ];
+
+export const createDefaultSubscription = (tier: SubscriptionTier = 'starter'): SubscriptionDetails => {
+  const now = new Date();
+  const trialExpiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  return {
+    tier,
+    status: tier === 'starter' ? 'trial_active' : 'active',
+    billingCycle: 'monthly',
+    trialStartedAt: now.toISOString(),
+    trialExpiresAt: trialExpiry.toISOString(),
+    currentPeriodStart: now.toISOString(),
+    currentPeriodEnd: periodEnd.toISOString(),
+    billsThisMonth: 0,
+    maxBillsPerMonth: tier === 'starter' ? 100 : Infinity,
+    maxDevices: tier === 'starter' ? 1 : tier === 'pro' ? 3 : Infinity,
+  };
+};
+
+export const DEFAULT_BUSINESS_ACCOUNT: BusinessAccount = {
+  id: 'cafe_chai_point_01',
+  ownerId: 'owner_siddhant_01',
+  ownerEmail: 'siddhant@chaipoint.com',
+  ownerName: 'Siddhant',
+  businessName: 'Chai Point',
+  createdAt: '2026-09-01T09:00:00Z',
+  subscription: createDefaultSubscription('pro'),
+};
 
 export const DEFAULT_PRINTERS: Printer[] = [
   {
@@ -300,124 +368,350 @@ export const DEFAULT_SOUNDBOX: SoundboxSettings = {
 };
 
 export const storage = {
-  getCafeProfile(): CafeProfile {
+  getActiveBusinessId(): string {
+    return localStorage.getItem(STORAGE_KEYS.ACTIVE_BIZ) || 'cafe_chai_point_01';
+  },
+  setActiveBusinessId(id: string): void {
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_BIZ, id);
+  },
+
+  getScopedKey(baseKey: string, businessId?: string): string {
+    const bizId = businessId || this.getActiveBusinessId();
+    return `servejoy_${bizId}_${baseKey}`;
+  },
+
+  getAuthUser(): AuthUser | null {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.CAFE);
-      return data ? { ...DEFAULT_CAFE_PROFILE, ...JSON.parse(data) } : DEFAULT_CAFE_PROFILE;
+      const data = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  },
+  saveAuthUser(user: AuthUser | null): void {
+    if (user) {
+      localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+    }
+  },
+
+  getAllBusinesses(): BusinessAccount[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.BUSINESSES);
+      const list: BusinessAccount[] = data ? JSON.parse(data) : [];
+      if (!list.some((b) => b.id === DEFAULT_BUSINESS_ACCOUNT.id)) {
+        list.unshift(DEFAULT_BUSINESS_ACCOUNT);
+      }
+      return list;
+    } catch {
+      return [DEFAULT_BUSINESS_ACCOUNT];
+    }
+  },
+
+  getBusinessAccount(businessId?: string): BusinessAccount | null {
+    const bizId = businessId || this.getActiveBusinessId();
+    const list = this.getAllBusinesses();
+    return list.find((b) => b.id === bizId) || null;
+  },
+
+  saveBusinessAccount(account: BusinessAccount): void {
+    const list = this.getAllBusinesses();
+    const idx = list.findIndex((b) => b.id === account.id);
+    if (idx >= 0) {
+      list[idx] = account;
+    } else {
+      list.push(account);
+    }
+    localStorage.setItem(STORAGE_KEYS.BUSINESSES, JSON.stringify(list));
+  },
+
+  getSubscription(businessId?: string): SubscriptionDetails {
+    const bizId = businessId || this.getActiveBusinessId();
+    try {
+      const scopedKey = this.getScopedKey('subscription', bizId);
+      const data = localStorage.getItem(scopedKey);
+      if (data) return JSON.parse(data);
+
+      const acc = this.getBusinessAccount(bizId);
+      if (acc?.subscription) {
+        this.saveSubscription(acc.subscription, bizId);
+        return acc.subscription;
+      }
+      const def = createDefaultSubscription(bizId === 'cafe_chai_point_01' ? 'pro' : 'starter');
+      this.saveSubscription(def, bizId);
+      return def;
+    } catch {
+      return createDefaultSubscription('starter');
+    }
+  },
+
+  saveSubscription(sub: SubscriptionDetails, businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('subscription', bizId), JSON.stringify(sub));
+    const acc = this.getBusinessAccount(bizId);
+    if (acc) {
+      acc.subscription = sub;
+      this.saveBusinessAccount(acc);
+    }
+  },
+
+  getCafeProfile(businessId?: string): CafeProfile {
+    try {
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('cafe_profile', bizId);
+      const data = localStorage.getItem(scopedKey);
+      if (data) {
+        return { ...DEFAULT_CAFE_PROFILE, ...JSON.parse(data), id: bizId, businessId: bizId };
+      }
+
+      // Legacy fallback for default business
+      if (bizId === 'cafe_chai_point_01') {
+        const legacy = localStorage.getItem(STORAGE_KEYS.CAFE);
+        if (legacy) {
+          const parsed = JSON.parse(legacy);
+          localStorage.setItem(scopedKey, JSON.stringify(parsed));
+          return { ...DEFAULT_CAFE_PROFILE, ...parsed, id: bizId, businessId: bizId };
+        }
+        return DEFAULT_CAFE_PROFILE;
+      }
+
+      // For newly registered businesses
+      const bizAcc = this.getBusinessAccount(bizId);
+      const newProfile: CafeProfile = {
+        ...DEFAULT_CAFE_PROFILE,
+        id: bizId,
+        businessId: bizId,
+        name: bizAcc?.businessName || 'New Restaurant',
+        ownerName: bizAcc?.ownerName || 'Business Owner',
+        email: bizAcc?.ownerEmail || '',
+        subscriptionTier: bizAcc?.subscription.tier || 'starter',
+      };
+      localStorage.setItem(scopedKey, JSON.stringify(newProfile));
+      return newProfile;
     } catch {
       return DEFAULT_CAFE_PROFILE;
     }
   },
-  saveCafeProfile(profile: CafeProfile): void {
-    localStorage.setItem(STORAGE_KEYS.CAFE, JSON.stringify(profile));
+
+  saveCafeProfile(profile: CafeProfile, businessId?: string): void {
+    const bizId = businessId || profile.businessId || this.getActiveBusinessId();
+    const updated = { ...profile, id: bizId, businessId: bizId };
+    localStorage.setItem(this.getScopedKey('cafe_profile', bizId), JSON.stringify(updated));
+    if (bizId === 'cafe_chai_point_01') {
+      localStorage.setItem(STORAGE_KEYS.CAFE, JSON.stringify(updated));
+    }
   },
 
-  getMenuItems(): MenuItem[] {
+  getMenuItems(businessId?: string): MenuItem[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.MENU);
-      return data ? JSON.parse(data) : DEFAULT_MENU_ITEMS;
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('menu_items', bizId);
+      const data = localStorage.getItem(scopedKey);
+      if (data) return JSON.parse(data);
+
+      if (bizId === 'cafe_chai_point_01') {
+        const legacy = localStorage.getItem(STORAGE_KEYS.MENU);
+        if (legacy) {
+          const parsed = JSON.parse(legacy);
+          localStorage.setItem(scopedKey, JSON.stringify(parsed));
+          return parsed;
+        }
+        return DEFAULT_MENU_ITEMS;
+      }
+
+      // Initial standard sample items for new restaurants
+      const initialItems = DEFAULT_MENU_ITEMS.map((item) => ({
+        ...item,
+        businessId: bizId,
+      }));
+      localStorage.setItem(scopedKey, JSON.stringify(initialItems));
+      return initialItems;
     } catch {
       return DEFAULT_MENU_ITEMS;
     }
   },
-  saveMenuItems(items: MenuItem[]): void {
-    localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(items));
-  },
 
-  getBills(): Bill[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.BILLS);
-      return data ? JSON.parse(data) : DEFAULT_BILLS;
-    } catch {
-      return DEFAULT_BILLS;
+  saveMenuItems(items: MenuItem[], businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('menu_items', bizId), JSON.stringify(items));
+    if (bizId === 'cafe_chai_point_01') {
+      localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(items));
     }
   },
-  saveBills(bills: Bill[]): void {
-    localStorage.setItem(STORAGE_KEYS.BILLS, JSON.stringify(bills));
-  },
 
-  getOrders(): Order[] {
+  getBills(businessId?: string): Bill[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.ORDERS);
-      return data ? JSON.parse(data) : DEFAULT_ORDERS;
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('bills', bizId);
+      const data = localStorage.getItem(scopedKey);
+      if (data) return JSON.parse(data);
+
+      if (bizId === 'cafe_chai_point_01') {
+        const legacy = localStorage.getItem(STORAGE_KEYS.BILLS);
+        if (legacy) {
+          const parsed = JSON.parse(legacy);
+          localStorage.setItem(scopedKey, JSON.stringify(parsed));
+          return parsed;
+        }
+        return DEFAULT_BILLS;
+      }
+      return [];
     } catch {
-      return DEFAULT_ORDERS;
+      return [];
     }
   },
-  saveOrders(orders: Order[]): void {
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
-  },
 
-  getStaff(): Staff[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.STAFF);
-      return data ? JSON.parse(data) : DEFAULT_STAFF;
-    } catch {
-      return DEFAULT_STAFF;
+  saveBills(bills: Bill[], businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('bills', bizId), JSON.stringify(bills));
+    if (bizId === 'cafe_chai_point_01') {
+      localStorage.setItem(STORAGE_KEYS.BILLS, JSON.stringify(bills));
     }
   },
-  saveStaff(staff: Staff[]): void {
-    localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(staff));
+
+  getOrders(businessId?: string): Order[] {
+    try {
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('orders', bizId);
+      const data = localStorage.getItem(scopedKey);
+      if (data) return JSON.parse(data);
+
+      if (bizId === 'cafe_chai_point_01') {
+        const legacy = localStorage.getItem(STORAGE_KEYS.ORDERS);
+        if (legacy) {
+          const parsed = JSON.parse(legacy);
+          localStorage.setItem(scopedKey, JSON.stringify(parsed));
+          return parsed;
+        }
+        return DEFAULT_ORDERS;
+      }
+      return [];
+    } catch {
+      return [];
+    }
   },
 
-  getPrinters(): Printer[] {
+  saveOrders(orders: Order[], businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('orders', bizId), JSON.stringify(orders));
+    if (bizId === 'cafe_chai_point_01') {
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+    }
+  },
+
+  getStaff(businessId?: string): Staff[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.PRINTERS);
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('staff', bizId);
+      const data = localStorage.getItem(scopedKey);
+      if (data) return JSON.parse(data);
+
+      if (bizId === 'cafe_chai_point_01') {
+        const legacy = localStorage.getItem(STORAGE_KEYS.STAFF);
+        if (legacy) {
+          const parsed = JSON.parse(legacy);
+          localStorage.setItem(scopedKey, JSON.stringify(parsed));
+          return parsed;
+        }
+        return DEFAULT_STAFF;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  saveStaff(staff: Staff[], businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('staff', bizId), JSON.stringify(staff));
+    if (bizId === 'cafe_chai_point_01') {
+      localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(staff));
+    }
+  },
+
+  getPrinters(businessId?: string): Printer[] {
+    try {
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('printers', bizId);
+      const data = localStorage.getItem(scopedKey);
       return data ? JSON.parse(data) : DEFAULT_PRINTERS;
     } catch {
       return DEFAULT_PRINTERS;
     }
   },
-  savePrinters(printers: Printer[]): void {
-    localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(printers));
+
+  savePrinters(printers: Printer[], businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('printers', bizId), JSON.stringify(printers));
+    if (bizId === 'cafe_chai_point_01') {
+      localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(printers));
+    }
   },
 
-  getAiCredits(): AiCredits {
+  getAiCredits(businessId?: string): AiCredits {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.AI_CREDITS);
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('ai_credits', bizId);
+      const data = localStorage.getItem(scopedKey);
       return data ? JSON.parse(data) : { used: 3, total: 10 };
     } catch {
       return { used: 3, total: 10 };
     }
   },
-  saveAiCredits(credits: AiCredits): void {
-    localStorage.setItem(STORAGE_KEYS.AI_CREDITS, JSON.stringify(credits));
+
+  saveAiCredits(credits: AiCredits, businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('ai_credits', bizId), JSON.stringify(credits));
   },
 
-  getSoundboxSettings(): SoundboxSettings {
+  getSoundboxSettings(businessId?: string): SoundboxSettings {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.SOUNDBOX);
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('soundbox', bizId);
+      const data = localStorage.getItem(scopedKey);
       return data ? { ...DEFAULT_SOUNDBOX, ...JSON.parse(data) } : DEFAULT_SOUNDBOX;
     } catch {
       return DEFAULT_SOUNDBOX;
     }
   },
-  saveSoundboxSettings(settings: SoundboxSettings): void {
-    localStorage.setItem(STORAGE_KEYS.SOUNDBOX, JSON.stringify(settings));
+
+  saveSoundboxSettings(settings: SoundboxSettings, businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('soundbox', bizId), JSON.stringify(settings));
+    if (bizId === 'cafe_chai_point_01') {
+      localStorage.setItem(STORAGE_KEYS.SOUNDBOX, JSON.stringify(settings));
+    }
   },
 
   getTheme(): 'light' | 'dark' | 'system' {
     return (localStorage.getItem(STORAGE_KEYS.THEME) as any) || 'system';
   },
+
   saveTheme(theme: 'light' | 'dark' | 'system'): void {
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
   },
 
-  getWaiterRequests(): WaiterRequest[] {
+  getWaiterRequests(businessId?: string): WaiterRequest[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.WAITER_REQUESTS);
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('waiter_requests', bizId);
+      const data = localStorage.getItem(scopedKey);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }
   },
-  saveWaiterRequests(requests: WaiterRequest[]): void {
-    localStorage.setItem(STORAGE_KEYS.WAITER_REQUESTS, JSON.stringify(requests));
+
+  saveWaiterRequests(requests: WaiterRequest[], businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('waiter_requests', bizId), JSON.stringify(requests));
   },
 
   getNetworkHost(): string {
     return localStorage.getItem(STORAGE_KEYS.NETWORK_HOST) || '';
   },
+
   saveNetworkHost(host: string): void {
     localStorage.setItem(STORAGE_KEYS.NETWORK_HOST, host);
   },

@@ -9,8 +9,10 @@ import { WaiterPage } from './pages/WaiterPage';
 import { KitchenPage } from './pages/KitchenPage';
 import { CustomerMenuPage } from './pages/CustomerMenuPage';
 import { LoginPage } from './pages/LoginPage';
+import { PricingPage } from './pages/PricingPage';
 import { McpConsentPage } from './pages/McpConsentPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,9 +36,34 @@ export const App: React.FC = () => {
             }
           >
             <Routes>
-              <Route path="/" element={<PosPage />} />
-              <Route path="/waiter" element={<WaiterPage />} />
-              <Route path="/kitchen" element={<KitchenPage />} />
+              {/* Protected Restaurant Operations */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'manager', 'cashier']}>
+                    <PosPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/waiter"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'manager', 'waiter']}>
+                    <WaiterPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/kitchen"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'manager', 'kitchen']}>
+                    <KitchenPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Public Marketing, Authentication & Customer Menu Routes */}
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<LoginPage />} />
               <Route path="/menu/:userId" element={<CustomerMenuPage />} />

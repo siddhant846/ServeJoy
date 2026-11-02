@@ -20,6 +20,7 @@ import { AiDishModal } from '../components/pos/AiDishModal';
 import { PrinterManagerModal } from '../components/pos/PrinterManagerModal';
 import { SettingsModal } from '../components/pos/SettingsModal';
 import { Bill } from '../types';
+import { subscriptionService } from '../services/subscriptionService';
 import { Utensils, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -70,6 +71,14 @@ export const PosPage: React.FC = () => {
       customerPhone: customer.phone,
       tableNumber: table,
     });
+
+    const subInfo = subscriptionService.getSubscriptionInfo(bill.businessId);
+    if (!subInfo.canBill) {
+      toast.error('Monthly bill limit reached on Starter Plan (100 bills). Please upgrade to Pro for unlimited billing.');
+      setIsSettingsModalOpen(true);
+      return;
+    }
+    subscriptionService.incrementBillCount(bill.businessId);
 
     setSelectedBillForPrint(bill);
     toast.success(`${bill.billNumber} generated! Scan to Pay UPI QR is ready`, { icon: '🧾' });

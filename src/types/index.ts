@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'cashier' | 'waiter' | 'kitchen';
+export type UserRole = 'owner' | 'manager' | 'cashier' | 'waiter' | 'kitchen';
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
 
@@ -16,8 +16,56 @@ export type AppTheme = 'light' | 'dark' | 'system';
 
 export type AnnouncementLanguage = 'en-IN' | 'hi-IN' | 'mr-IN';
 
+export type SubscriptionTier = 'starter' | 'pro' | 'business';
+
+export type SubscriptionStatus =
+  | 'trial_active'
+  | 'trial_expired'
+  | 'active'
+  | 'payment_pending'
+  | 'subscription_expired'
+  | 'cancelled';
+
+export type BillingCycle = 'monthly' | 'annual';
+
+export interface SubscriptionDetails {
+  tier: SubscriptionTier;
+  status: SubscriptionStatus;
+  billingCycle: BillingCycle;
+  trialStartedAt: string;
+  trialExpiresAt: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  billsThisMonth: number;
+  maxBillsPerMonth: number;
+  maxDevices: number;
+}
+
+export interface BusinessAccount {
+  id: string; // unique businessId
+  ownerId: string;
+  ownerEmail: string;
+  ownerName: string;
+  businessName: string;
+  createdAt: string;
+  subscription: SubscriptionDetails;
+}
+
+export interface AuthUser {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  businessId: string;
+  role: UserRole;
+  isOwner: boolean;
+  staffId?: string;
+  token?: string;
+}
+
 export interface CafeProfile {
   id: string;
+  businessId?: string;
   name: string;
   tagLine: string;
   ownerName: string;
@@ -29,7 +77,7 @@ export interface CafeProfile {
   upiId: string;
   currency: string;
   taxRate: number;
-  subscriptionTier: 'starter' | 'pro' | 'business';
+  subscriptionTier: SubscriptionTier;
   logoUrl: string;
   customQrUrl?: string;
   customQrEnabled?: boolean;
@@ -39,6 +87,7 @@ export interface CafeProfile {
 
 export interface MenuItem {
   id: string;
+  businessId?: string;
   name: string;
   category: string;
   price: number;
@@ -64,6 +113,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  businessId?: string;
   tableNumber: string;
   kotNumber: string;
   status: OrderStatus;
@@ -89,6 +139,7 @@ export type PaymentMode = 'cash' | 'upi' | 'card';
 
 export interface Bill {
   id: string;
+  businessId?: string;
   billNumber: string;
   date: string;
   items: BillItem[];
@@ -106,10 +157,13 @@ export interface Bill {
 
 export interface Staff {
   id: string;
+  businessId: string;
   name: string;
-  email: string;
+  email?: string;
+  phone?: string;
   role: UserRole;
   pin: string;
+  active: boolean;
   createdAt: string;
 }
 
@@ -123,6 +177,7 @@ export interface Printer {
 
 export interface WaiterRequest {
   id: string;
+  businessId?: string;
   tableNumber: string;
   type: 'water' | 'bill' | 'waiter';
   status: 'pending' | 'completed';

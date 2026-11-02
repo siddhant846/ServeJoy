@@ -56,11 +56,18 @@ class CloudSyncEngine {
     this.listeners.forEach((fn) => fn(copy));
   }
 
+  private getCollectionName(baseType: string, businessId?: string): string {
+    const bizId = businessId || storage.getActiveBusinessId();
+    const cleanBizId = bizId.replace(/[^a-zA-Z0-9_]/g, '_');
+    return `servejoy_tenant_${cleanBizId}_${baseType}`;
+  }
+
   private makeDocument(id: string, payload: any, docType: string) {
     return {
       fields: {
         docId: { stringValue: id },
         docType: { stringValue: docType },
+        businessId: { stringValue: payload.businessId || storage.getActiveBusinessId() },
         payload: { stringValue: JSON.stringify(payload) },
         updatedAt: { stringValue: new Date().toISOString() },
       },
@@ -71,7 +78,8 @@ class CloudSyncEngine {
     if (!this.status.isOnline) return false;
     this.knownOrderIds.add(order.id);
     try {
-      const url = `${FIRESTORE_BASE}/servejoy_orders/${order.id}?key=${FIREBASE_KEY}`;
+      const collection = this.getCollectionName('orders', order.businessId);
+      const url = `${FIRESTORE_BASE}/${collection}/${order.id}?key=${FIREBASE_KEY}`;
       const doc = this.makeDocument(order.id, order, 'order');
       const res = await fetch(url, {
         method: 'PATCH',
@@ -94,7 +102,8 @@ class CloudSyncEngine {
     if (!this.status.isOnline) return false;
     this.knownRequestIds.add(request.id);
     try {
-      const url = `${FIRESTORE_BASE}/servejoy_requests/${request.id}?key=${FIREBASE_KEY}`;
+      const collection = this.getCollectionName('requests', request.businessId);
+      const url = `${FIRESTORE_BASE}/${collection}/${request.id}?key=${FIREBASE_KEY}`;
       const doc = this.makeDocument(request.id, request, 'request');
       const res = await fetch(url, {
         method: 'PATCH',
@@ -116,7 +125,8 @@ class CloudSyncEngine {
   async pushBill(bill: Bill): Promise<boolean> {
     if (!this.status.isOnline) return false;
     try {
-      const url = `${FIRESTORE_BASE}/servejoy_bills/${bill.id}?key=${FIREBASE_KEY}`;
+      const collection = this.getCollectionName('bills', bill.businessId);
+      const url = `${FIRESTORE_BASE}/${collection}/${bill.id}?key=${FIREBASE_KEY}`;
       const doc = this.makeDocument(bill.id, bill, 'bill');
       const res = await fetch(url, {
         method: 'PATCH',
@@ -146,8 +156,10 @@ class CloudSyncEngine {
     };
 
     try {
-      // 1. Fetch Orders
-      const orderUrl = `${FIRESTORE_BASE}/servejoy_orders?pageSize=50&key=${FIREBASE_KEY}`;
+      const bizId = storage.getActiveBusinessId();
+      // 1. Fetch Orders strictly scoped to current active business
+      const orderCollection = this.getCollectionName('orders', bizId);
+      const orderUrl = `${FIRESTORE_BASE}/${orderCollection}?pageSize=50&key=${FIREBASE_KEY}`;
       const orderRes = await fetch(orderUrl);
       if (orderRes.ok) {
         const data = await orderRes.json();
@@ -189,8 +201,9 @@ class CloudSyncEngine {
         }
       }
 
-      // 2. Fetch Waiter Requests
-      const reqUrl = `${FIRESTORE_BASE}/servejoy_requests?pageSize=50&key=${FIREBASE_KEY}`;
+      // 2. Fetch Waiter Requests strictly scoped to current active business
+      const reqCollection = this.getCollectionName('requests', bizId);
+      const reqUrl = `${FIRESTORE_BASE}/${reqCollection}?pageSize=50&key=${FIREBASE_KEY}`;
       const reqRes = await fetch(reqUrl);
       if (reqRes.ok) {
         const reqData = await reqRes.json();

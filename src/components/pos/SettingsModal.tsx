@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { soundbox } from '../../services/soundbox';
 import { storage } from '../../services/storage';
+import { authService } from '../../services/authService';
+import { subscriptionService, PLANS } from '../../services/subscriptionService';
 import {
   CafeProfile,
   SoundboxSettings,
   BusinessType,
   AppTheme,
   AnnouncementLanguage,
+  Staff,
+  UserRole,
+  SubscriptionTier,
+  BillingCycle,
 } from '../../types';
 import {
   X,
@@ -34,14 +40,22 @@ import {
   Mail,
   Receipt,
   Sparkles,
+  Users,
+  CreditCard,
+  Plus,
+  Check,
+  Key,
+  Clock,
+  ExternalLink,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'profile' | 'custom-qr' | 'soundbox' | 'appearance' | 'account';
+  initialTab?: 'profile' | 'custom-qr' | 'soundbox' | 'appearance' | 'staff' | 'subscription' | 'account';
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -59,16 +73,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   } = useApp();
 
   const navigate = useNavigate();
+  const authUser = authService.getCurrentUser();
 
   // Active tab inside settings modal
   const [activeTab, setActiveTab] = useState<
-    'profile' | 'custom-qr' | 'soundbox' | 'appearance' | 'account'
+    'profile' | 'custom-qr' | 'soundbox' | 'appearance' | 'staff' | 'subscription' | 'account'
   >(initialTab);
 
   // Form states initialized with current profile
   const [profileForm, setProfileForm] = useState<CafeProfile>({ ...cafeProfile });
   const [soundForm, setSoundForm] = useState<SoundboxSettings>({ ...soundboxSettings });
   const [currentTheme, setCurrentTheme] = useState<AppTheme>(() => storage.getTheme());
+
+  // Staff management state
+  const [staffList, setStaffList] = useState<Staff[]>(() => storage.getStaff(cafeProfile.id));
+  const [newStaffName, setNewStaffName] = useState<string>('');
+  const [newStaffRole, setNewStaffRole] = useState<UserRole>('waiter');
+  const [newStaffPin, setNewStaffPin] = useState<string>('');
+  const [newStaffPhone, setNewStaffPhone] = useState<string>('');
+  const [isAddingStaff, setIsAddingStaff] = useState<boolean>(false);
+
+  // Subscription state
+  const subInfo = subscriptionService.getSubscriptionInfo(cafeProfile.id);
 
   // Logout confirmation state
   const [showLogoutConfirm, setShowLogoutConfirm] = useState<boolean>(false);
@@ -206,9 +232,55 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     toast.success('Complete business data backup downloaded!', { icon: '💾' });
   };
 
+  // Staff Management Handlers
+  const handleAddStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStaffName.trim() || newStaffPin.length !== 4) {
+      toast.error('Please provide a staff name and a 4-digit PIN.');
+      return;
+    }
+    const newStaff: Staff = {
+      id: `staff_${Date.now()}`,
+      businessId: cafeProfile.id,
+      name: newStaffName.trim(),
+      phone: newStaffPhone.trim(),
+      role: newStaffRole,
+      pin: newStaffPin.trim(),
+      active: true,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [...staffList, newStaff];
+    setStaffList(updated);
+    storage.saveStaff(updated, cafeProfile.id);
+    setNewStaffName('');
+    setNewStaffPin('');
+    setNewStaffPhone('');
+    setIsAddingStaff(false);
+    toast.success(`Added ${newStaff.name} as ${newStaff.role.toUpperCase()}!`, { icon: '👤' });
+  };
+
+  const handleToggleStaff = (id: string) => {
+    const updated = staffList.map((s) => (s.id === id ? { ...s, active: !s.active } : s));
+    setStaffList(updated);
+    storage.saveStaff(updated, cafeProfile.id);
+  };
+
+  const handleDeleteStaff = (id: string) => {
+    const updated = staffList.filter((s) => s.id !== id);
+    setStaffList(updated);
+    storage.saveStaff(updated, cafeProfile.id);
+    toast.info('Staff member removed.');
+  };
+
+  const handleUpgradePlan = (tier: SubscriptionTier) => {
+    subscriptionService.activatePlan(tier, 'annual', `ref_${Date.now()}`, cafeProfile.id);
+    toast.success(`Successfully upgraded to ServeJoy ${PLANS[tier].name}!`, { icon: '🎉' });
+  };
+
   // Logout Handler
   const handleLogout = () => {
     setShowLogoutConfirm(false);
+    authService.logout();
     onClose();
     toast.info('Shift ended. You have been logged out.');
     navigate('/login');
@@ -290,6 +362,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             <Palette className="h-3.5 w-3.5" />
             <span>Theme</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('staff')}
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 font-bold transition active:scale-95 ${
+              activeTab === 'staff'
+                ? 'bg-card text-accent shadow-sm border border-border/60'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span>Staff & PINs</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('subscription')}
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 font-bold transition active:scale-95 ${
+              activeTab === 'subscription'
+                ? 'bg-card text-accent shadow-sm border border-border/60'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <CreditCard className="h-3.5 w-3.5" />
+            <span>Plan & Trial</span>
+            {subInfo.isTrial && (
+              <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-mono text-accent">
+                {subInfo.daysRemaining}d left
+              </span>
+            )}
           </button>
 
           <button
@@ -1001,7 +1102,302 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* ================= TAB 5: ACCOUNT & BACKUP ================= */}
+          {/* ================= TAB 5: STAFF & TEAM ACCESS ================= */}
+          {activeTab === 'staff' && (
+            <div className="space-y-4">
+              {/* Outlet Business ID Banner for Staff Terminal */}
+              <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="space-y-0.5 text-center sm:text-left">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
+                    Restaurant Terminal Outlet ID
+                  </span>
+                  <p className="font-mono text-sm font-black text-foreground">{cafeProfile.id}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Staff enter this Business ID + their assigned 4-digit PIN on the Login screen.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddingStaff(!isAddingStaff)}
+                  className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white shadow-sm hover:opacity-95 active:scale-95 transition shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>{isAddingStaff ? 'Cancel' : 'Add Employee'}</span>
+                </button>
+              </div>
+
+              {/* Add New Staff Form */}
+              {isAddingStaff && (
+                <form
+                  onSubmit={handleAddStaff}
+                  className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm animate-fade-in"
+                >
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    New Staff Member Setup
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1">
+                        Employee Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newStaffName}
+                        onChange={(e) => setNewStaffName(e.target.value)}
+                        placeholder="e.g. Ramesh Kumar"
+                        className="w-full rounded-xl border border-input bg-secondary/50 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1">
+                        Staff Role *
+                      </label>
+                      <select
+                        value={newStaffRole}
+                        onChange={(e) => setNewStaffRole(e.target.value as UserRole)}
+                        className="w-full rounded-xl border border-input bg-secondary/50 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent"
+                      >
+                        <option value="manager">🛡️ Manager (Daily Operations & Menu)</option>
+                        <option value="cashier">💼 Cashier (Billing & Counter POS)</option>
+                        <option value="waiter">🍽️ Waiter (Table Ordering & Floor Plan)</option>
+                        <option value="kitchen">🍳 Kitchen Staff (KDS Cooking & KOTs)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1">
+                        4-Digit Secret Login PIN *
+                      </label>
+                      <input
+                        type="password"
+                        maxLength={4}
+                        required
+                        value={newStaffPin}
+                        onChange={(e) => setNewStaffPin(e.target.value)}
+                        placeholder="e.g. 5678"
+                        className="w-full rounded-xl border border-input bg-secondary/50 px-3 py-2 text-xs font-mono text-center tracking-widest text-foreground focus:outline-none focus:border-accent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1">
+                        Phone Number (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        value={newStaffPhone}
+                        onChange={(e) => setNewStaffPhone(e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="w-full rounded-xl border border-input bg-secondary/50 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="submit"
+                      className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white shadow-sm hover:opacity-95 active:scale-95 transition"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Save & Activate Staff PIN</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Staff Member List */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Active Team Members ({staffList.length})
+                </h4>
+
+                {staffList.length === 0 ? (
+                  <div className="rounded-2xl border border-border/80 bg-card p-6 text-center text-xs text-muted-foreground">
+                    No staff members added yet. Click "+ Add Employee" to generate terminal PINs.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {staffList.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between rounded-2xl border border-border/80 bg-card p-3 text-xs"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-foreground font-bold">
+                            {member.role === 'manager'
+                              ? '🛡️'
+                              : member.role === 'cashier'
+                              ? '💼'
+                              : member.role === 'waiter'
+                              ? '🍽️'
+                              : '🍳'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-foreground">{member.name}</span>
+                              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground uppercase">
+                                {member.role}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground font-mono">
+                              PIN: •••• {member.phone ? `• Ph: ${member.phone}` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStaff(member.id)}
+                            className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
+                              member.active
+                                ? 'bg-emerald-500/15 text-emerald-600'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {member.active ? 'Active' : 'Disabled'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteStaff(member.id)}
+                            className="p-1.5 text-muted-foreground hover:text-destructive transition"
+                            title="Remove staff member"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 6: SUBSCRIPTION & 7-DAY TRIAL ================= */}
+          {activeTab === 'subscription' && (
+            <div className="space-y-4">
+              {/* Active Plan Status Banner */}
+              <div className="rounded-2xl border border-accent/30 bg-gradient-to-r from-accent/10 via-card to-card p-5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
+                      Current Subscription
+                    </span>
+                    <h3 className="text-base font-bold text-foreground flex items-center gap-2 mt-0.5">
+                      <Sparkles className="h-4 w-4 text-accent" />
+                      <span>{PLANS[subInfo.subscription.tier].name}</span>
+                      <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-bold text-accent uppercase">
+                        {subInfo.subscription.status.replace(/_/g, ' ')}
+                      </span>
+                    </h3>
+                  </div>
+
+                  <Link
+                    to="/pricing"
+                    target="_blank"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline"
+                  >
+                    <span>Full Feature Matrix</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-border/50 text-xs">
+                  <div className="p-2.5 rounded-xl bg-secondary/50">
+                    <p className="text-[10px] text-muted-foreground">Trial Countdown</p>
+                    <p className="font-bold text-foreground">
+                      {subInfo.isTrial ? `${subInfo.daysRemaining} Days Left` : 'Active Plan'}
+                    </p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-secondary/50">
+                    <p className="text-[10px] text-muted-foreground">Monthly Bills</p>
+                    <p className="font-bold text-foreground">
+                      {subInfo.subscription.billsThisMonth} /{' '}
+                      {subInfo.subscription.maxBillsPerMonth === Infinity
+                        ? 'Unlimited'
+                        : subInfo.subscription.maxBillsPerMonth}
+                    </p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-secondary/50 col-span-2 sm:col-span-1">
+                    <p className="text-[10px] text-muted-foreground">Active Terminals</p>
+                    <p className="font-bold text-foreground">
+                      {subInfo.subscription.maxDevices === Infinity
+                        ? 'Unlimited Devices'
+                        : `Up to ${subInfo.subscription.maxDevices} Devices`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upgrade Quick Cards */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  Available Commercial Upgrades
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Pro Cafe */}
+                  <div className="rounded-2xl border border-border bg-card p-4 flex flex-col justify-between space-y-3 hover:border-accent/50 transition">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-bold text-foreground">Pro Café</h5>
+                        <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
+                          Best Value
+                        </span>
+                      </div>
+                      <p className="font-receipt text-lg font-bold text-foreground mt-1">
+                        ₹4,999 <span className="text-[10px] font-normal text-muted-foreground">/ year (Save ₹1,000)</span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Unlimited bills, 3 devices, multi-lingual soundbox & custom QR.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleUpgradePlan('pro')}
+                      className="w-full rounded-xl bg-accent py-2 text-xs font-bold text-white shadow-sm hover:opacity-90 active:scale-95 transition"
+                    >
+                      Upgrade to Pro Café
+                    </button>
+                  </div>
+
+                  {/* Business Plan */}
+                  <div className="rounded-2xl border border-border bg-card p-4 flex flex-col justify-between space-y-3 hover:border-accent/50 transition">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-bold text-foreground">Business & Multi-Table</h5>
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
+                          Full Automation
+                        </span>
+                      </div>
+                      <p className="font-receipt text-lg font-bold text-foreground mt-1">
+                        ₹8,999 <span className="text-[10px] font-normal text-muted-foreground">/ year (Save ₹3,000)</span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Unlimited terminals, visual floor plan, table QR ordering & CRM.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleUpgradePlan('business')}
+                      className="w-full rounded-xl bg-secondary border border-border py-2 text-xs font-bold text-foreground hover:bg-secondary/80 active:scale-95 transition"
+                    >
+                      Upgrade to Business
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 7: ACCOUNT & BACKUP ================= */}
           {activeTab === 'account' && (
             <div className="space-y-4">
               {/* Active Role & SaaS Subscription Status */}
@@ -1022,16 +1418,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 <div className="grid grid-cols-3 gap-2 text-center pt-1 border-t border-border/40 text-xs">
                   <div className="p-2 rounded-xl bg-secondary/50">
-                    <p className="text-[10px] text-muted-foreground">Logged In As</p>
-                    <p className="font-bold text-foreground capitalize">{userRole}</p>
+                    <p className="text-[10px] text-muted-foreground">User / Role</p>
+                    <p className="font-bold text-foreground capitalize truncate">
+                      {authUser?.displayName || userRole}
+                    </p>
                   </div>
                   <div className="p-2 rounded-xl bg-secondary/50">
-                    <p className="text-[10px] text-muted-foreground">Cloud Sync</p>
-                    <p className="font-bold text-emerald-600">Connected</p>
+                    <p className="text-[10px] text-muted-foreground">Outlet ID</p>
+                    <p className="font-bold text-emerald-600 font-mono truncate">{cafeProfile.id}</p>
                   </div>
                   <div className="p-2 rounded-xl bg-secondary/50">
-                    <p className="text-[10px] text-muted-foreground">Offline Storage</p>
-                    <p className="font-bold text-foreground">Encrypted Local</p>
+                    <p className="text-[10px] text-muted-foreground">Data Isolation</p>
+                    <p className="font-bold text-foreground">Active Tenant</p>
                   </div>
                 </div>
               </div>
@@ -1121,3 +1519,4 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     </div>
   );
 };
+
