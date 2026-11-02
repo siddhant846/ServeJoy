@@ -84,7 +84,10 @@ class SoundboxService {
     utterance.lang = settings.language || 'en-IN';
 
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find((v) => v.lang === settings.language || v.lang.includes('IN'));
+    const langCode = settings.language || 'en-IN';
+    const preferredVoice = voices.find(
+      (v) => v.lang === langCode || v.lang.startsWith(langCode.slice(0, 2)) || v.lang.includes('IN')
+    );
     if (preferredVoice) {
       utterance.voice = preferredVoice;
     }
@@ -111,29 +114,101 @@ class SoundboxService {
 
   announceOrder(kotNumber: string, tableNumber: string, total: number): void {
     const settings = storage.getSoundboxSettings();
-    if (!settings.announceOrders) return;
+    if (!settings.enabled || !settings.announceOrders) return;
     this.playChime();
+
     setTimeout(() => {
-      this.speak(`New order received! ${tableNumber}, KOT number ${kotNumber}, amount rupees ${total}`);
+      let phrase = `New order received! ${tableNumber}, KOT number ${kotNumber}, amount rupees ${total}`;
+      if (settings.language === 'hi-IN') {
+        phrase = `नया ऑर्डर मिला है! ${tableNumber}, केओटी नंबर ${kotNumber}, कुल राशि ${total} रुपये`;
+      } else if (settings.language === 'mr-IN') {
+        phrase = `नवीन ऑर्डर आली आहे! ${tableNumber}, केओटी क्रमांक ${kotNumber}, एकूण रक्कम ${total} रुपये`;
+      }
+      this.speak(phrase);
     }, 400);
   }
 
   announceOrderReady(kotNumber: string, tableNumber: string): void {
     const settings = storage.getSoundboxSettings();
-    if (!settings.announceReady) return;
+    if (!settings.enabled || !settings.announceReady) return;
     this.playChime();
+
     setTimeout(() => {
-      this.speak(`Order alert! KOT number ${kotNumber} for ${tableNumber} is ready for serving!`);
+      let phrase = `Order alert! KOT number ${kotNumber} for ${tableNumber} is ready for serving!`;
+      if (settings.language === 'hi-IN') {
+        phrase = `ऑर्डर तैयार है! केओटी नंबर ${kotNumber}, ${tableNumber} का खाना तैयार है!`;
+      } else if (settings.language === 'mr-IN') {
+        phrase = `ऑर्डर तयार आहे! केओटी क्रमांक ${kotNumber}, ${tableNumber} ची ऑर्डर तयार आहे!`;
+      }
+      this.speak(phrase);
     }, 400);
   }
 
   announcePayment(total: number, paymentMode: string, reference: string): void {
     const settings = storage.getSoundboxSettings();
-    if (!settings.announcePayments) return;
+    if (!settings.enabled || !settings.announcePayments) return;
     this.playSuccessChime();
+
     setTimeout(() => {
       const modeText = paymentMode.toUpperCase();
-      this.speak(`Payment successful! Received rupees ${total} via ${modeText} for ${reference}`);
+      let phrase = `Payment successful! Received rupees ${total} via ${modeText} for ${reference}`;
+      if (settings.language === 'hi-IN') {
+        phrase = `भुगतान सफल रहा! ${reference} के लिए ${modeText} द्वारा ${total} रुपये प्राप्त हुए`;
+      } else if (settings.language === 'mr-IN') {
+        phrase = `पेमेंट यशस्वी झाले! ${reference} साठी ${modeText} द्वारे ${total} रुपये प्राप्त झाले`;
+      }
+      this.speak(phrase);
+    }, 400);
+  }
+
+  announceUpiConfirmation(total: number, reference: string): void {
+    const settings = storage.getSoundboxSettings();
+    if (!settings.enabled || !settings.announceUpiConfirmation) return;
+    this.playSuccessChime();
+
+    setTimeout(() => {
+      let phrase = `UPI Payment received! Rupees ${total} confirmed for ${reference}`;
+      if (settings.language === 'hi-IN') {
+        phrase = `यूपीआई भुगतान सफल! ${reference} के लिए ${total} रुपये प्राप्त हुए`;
+      } else if (settings.language === 'mr-IN') {
+        phrase = `यूपीआय पेमेंट कन्फर्म झाले! ${reference} साठी ${total} रुपये प्राप्त झाले`;
+      }
+      this.speak(phrase);
+    }, 400);
+  }
+
+  announcePaidBill(billNumber: string, total: number): void {
+    const settings = storage.getSoundboxSettings();
+    if (!settings.enabled || !settings.announcePaidBills) return;
+    this.playSuccessChime();
+
+    setTimeout(() => {
+      let phrase = `Bill ${billNumber} marked paid, amount rupees ${total}`;
+      if (settings.language === 'hi-IN') {
+        phrase = `बिल ${billNumber} चुकता हुआ, कुल राशि ${total} रुपये`;
+      } else if (settings.language === 'mr-IN') {
+        phrase = `बिल ${billNumber} भरले गेले, एकूण रक्कम ${total} रुपये`;
+      }
+      this.speak(phrase);
+    }, 400);
+  }
+
+  announceWaiterCall(tableNumber: string, type: string): void {
+    const settings = storage.getSoundboxSettings();
+    if (!settings.enabled || !settings.announceWaiterCalls) return;
+    this.playChime();
+
+    setTimeout(() => {
+      let typeLabel = type === 'water' ? 'water refill' : type === 'bill' ? 'the bill' : 'waiter assistance';
+      let phrase = `Attention! ${tableNumber} is requesting ${typeLabel}`;
+      if (settings.language === 'hi-IN') {
+        const typeHi = type === 'water' ? 'पानी' : type === 'bill' ? 'बिल' : 'सहायता';
+        phrase = `ध्यान दें! ${tableNumber} ने ${typeHi} के लिए बुलाया है`;
+      } else if (settings.language === 'mr-IN') {
+        const typeMr = type === 'water' ? 'पाणी' : type === 'bill' ? 'बिल' : 'मदत';
+        phrase = `लक्ष द्या! ${tableNumber} ने ${typeMr} साठी बोलावले आहे`;
+      }
+      this.speak(phrase);
     }, 400);
   }
 }

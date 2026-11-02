@@ -7,18 +7,21 @@ import {
   QrCode,
   Printer,
   Sparkles,
+  Settings,
 } from 'lucide-react';
 
 interface AppHeaderProps {
   onOpenQRModal?: () => void;
   onOpenSoundboxModal?: () => void;
   onOpenPrinterModal?: () => void;
+  onOpenSettingsModal?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenQRModal,
   onOpenSoundboxModal,
   onOpenPrinterModal,
+  onOpenSettingsModal,
 }) => {
   const { cafeProfile, userRole, syncStatus, syncAll, soundboxSettings } = useApp();
 
@@ -105,6 +108,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20 active:scale-95"
             >
               <Printer className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Business Profile, Soundbox, Theme & System Settings */}
+          {onOpenSettingsModal && (
+            <button
+              onClick={onOpenSettingsModal}
+              aria-label="Business Profile & Settings"
+              title="Business Profile, Soundbox, Theme & System Settings"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20 active:scale-95"
+            >
+              <Settings className="h-4 w-4" />
             </button>
           )}
         </div>

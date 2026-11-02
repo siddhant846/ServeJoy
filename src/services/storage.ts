@@ -22,11 +22,17 @@ export const DEFAULT_CAFE_PROFILE: CafeProfile = {
   ownerName: 'Siddhant',
   address: 'Shop 12, Indiranagar 100ft Road, Bengaluru',
   phone: '+91 98765 43210',
+  email: 'siddhant@chaipoint.com',
+  gstin: '29ABCDE1234F1Z5',
+  businessType: 'cafe',
   upiId: 'chaipoint@icici',
   currency: '₹',
   taxRate: 0,
   subscriptionTier: 'business',
   logoUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=150&auto=format&fit=crop&q=80',
+  customQrUrl: '',
+  customQrEnabled: false,
+  invoiceNote: 'Thank you for visiting! Scan to Pay or share feedback.',
 };
 
 export const DEFAULT_MENU_ITEMS: MenuItem[] = [
@@ -286,15 +292,18 @@ export const DEFAULT_SOUNDBOX: SoundboxSettings = {
   volume: 1,
   speechRate: 1,
   announcePayments: true,
+  announcePaidBills: true,
+  announceUpiConfirmation: true,
   announceOrders: true,
   announceReady: true,
+  announceWaiterCalls: true,
 };
 
 export const storage = {
   getCafeProfile(): CafeProfile {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.CAFE);
-      return data ? JSON.parse(data) : DEFAULT_CAFE_PROFILE;
+      return data ? { ...DEFAULT_CAFE_PROFILE, ...JSON.parse(data) } : DEFAULT_CAFE_PROFILE;
     } catch {
       return DEFAULT_CAFE_PROFILE;
     }
@@ -378,13 +387,20 @@ export const storage = {
   getSoundboxSettings(): SoundboxSettings {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SOUNDBOX);
-      return data ? JSON.parse(data) : DEFAULT_SOUNDBOX;
+      return data ? { ...DEFAULT_SOUNDBOX, ...JSON.parse(data) } : DEFAULT_SOUNDBOX;
     } catch {
       return DEFAULT_SOUNDBOX;
     }
   },
   saveSoundboxSettings(settings: SoundboxSettings): void {
     localStorage.setItem(STORAGE_KEYS.SOUNDBOX, JSON.stringify(settings));
+  },
+
+  getTheme(): 'light' | 'dark' | 'system' {
+    return (localStorage.getItem(STORAGE_KEYS.THEME) as any) || 'system';
+  },
+  saveTheme(theme: 'light' | 'dark' | 'system'): void {
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
   },
 
   getWaiterRequests(): WaiterRequest[] {

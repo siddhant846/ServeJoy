@@ -14,6 +14,7 @@ import {
   OrderStatus,
   PaymentMode,
   CloudSyncStatus,
+  AppTheme,
 } from '../types';
 import { storage } from '../services/storage';
 import { cloudSync } from '../services/cloudSync';
@@ -93,6 +94,8 @@ interface AppContextType {
 
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  theme: AppTheme;
+  setTheme: (theme: AppTheme) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -112,8 +115,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return list.find((p) => p.isDefault) || list[0] || null;
   });
   const [recentBill, setRecentBill] = useState<Bill | null>(null);
+  const [theme, setThemeState] = useState<AppTheme>(() => storage.getTheme());
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    return typeof window !== 'undefined' ? localStorage.getItem('servejoy_theme') === 'dark' : false;
+    const savedTheme = storage.getTheme();
+    if (savedTheme === 'dark') return true;
+    if (savedTheme === 'light') return false;
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [syncStatus, setSyncStatus] = useState<CloudSyncStatus>(() => cloudSync.getStatus());
 
@@ -129,18 +136,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return 'http://192.168.1.14:5173';
   });
 
-  // Dark mode effect
+  // Theme & Dark mode effect
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('servejoy_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('servejoy_theme', 'light');
-    }
-  }, [isDarkMode]);
+    storage.saveTheme(theme);
+    const applyTheme = (t: AppTheme) => {
+      let dark = false;
+      if (t === 'dark') {
+        dark = true;
+      } else if (t === 'light') {
+        dark = false;
+      } else {
+        dark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      setIsDarkMode(dark);
+      if (dark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
 
-  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
+    applyTheme(theme);
+
+    if (theme === 'system' && typeof window !== 'undefined') {
+      const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = () => applyTheme('system');
+      media.addEventListener('change', listener);
+      return () => media.removeEventListener('change', listener);
+    }
+  }, [theme]);
+
+  const setTheme = (t: AppTheme) => {
+    setThemeState(t);
+  };
+
+  const toggleDarkMode = () => {
+    const next: AppTheme = isDarkMode ? 'light' : 'dark';
+    setTheme(next);
+  };
 
   // Persistence effects
   useEffect(() => storage.saveCafeProfile(cafeProfile), [cafeProfile]);
@@ -567,6 +600,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setDefaultPrinter,
         isDarkMode,
         toggleDarkMode,
+        theme,
+        setTheme,
       }}
     >
       {children}

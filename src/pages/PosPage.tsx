@@ -18,6 +18,7 @@ import { TableQRModal } from '../components/pos/TableQRModal';
 import { SoundboxModal } from '../components/pos/SoundboxModal';
 import { AiDishModal } from '../components/pos/AiDishModal';
 import { PrinterManagerModal } from '../components/pos/PrinterManagerModal';
+import { SettingsModal } from '../components/pos/SettingsModal';
 import { Bill } from '../types';
 import { Utensils, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
@@ -41,6 +42,7 @@ export const PosPage: React.FC = () => {
   const [isSoundboxModalOpen, setIsSoundboxModalOpen] = useState<boolean>(false);
   const [isAiDishModalOpen, setIsAiDishModalOpen] = useState<boolean>(false);
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState<boolean>(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
   const [selectedBillForPrint, setSelectedBillForPrint] = useState<Bill | null>(null);
 
   const activeOrdersCount = orders.filter(
@@ -80,6 +82,7 @@ export const PosPage: React.FC = () => {
         onOpenQRModal={() => setIsQRModalOpen(true)}
         onOpenSoundboxModal={() => setIsSoundboxModalOpen(true)}
         onOpenPrinterModal={() => setIsPrinterModalOpen(true)}
+        onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
       />
 
       <main className="mx-auto max-w-[1720px] px-3.5 sm:px-6 lg:px-10 py-4">
@@ -217,6 +220,11 @@ export const PosPage: React.FC = () => {
       <PrinterManagerModal
         isOpen={isPrinterModalOpen}
         onClose={() => setIsPrinterModalOpen(false)}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
       />
     </div>
   );

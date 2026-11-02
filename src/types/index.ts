@@ -2,6 +2,20 @@ export type UserRole = 'owner' | 'cashier' | 'waiter' | 'kitchen';
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
 
+export type BusinessType =
+  | 'cafe'
+  | 'restaurant'
+  | 'hotel'
+  | 'canteen'
+  | 'bakery'
+  | 'fast_food'
+  | 'cloud_kitchen'
+  | 'other';
+
+export type AppTheme = 'light' | 'dark' | 'system';
+
+export type AnnouncementLanguage = 'en-IN' | 'hi-IN' | 'mr-IN';
+
 export interface CafeProfile {
   id: string;
   name: string;
@@ -9,11 +23,18 @@ export interface CafeProfile {
   ownerName: string;
   address: string;
   phone: string;
+  email?: string;
+  gstin?: string;
+  businessType?: BusinessType;
   upiId: string;
   currency: string;
   taxRate: number;
   subscriptionTier: 'starter' | 'pro' | 'business';
   logoUrl: string;
+  customQrUrl?: string;
+  customQrEnabled?: boolean;
+  invoiceNote?: string;
+  fssaiNumber?: string;
 }
 
 export interface MenuItem {
@@ -110,12 +131,15 @@ export interface WaiterRequest {
 
 export interface SoundboxSettings {
   enabled: boolean;
-  language: 'en-IN' | 'hi-IN';
+  language: AnnouncementLanguage;
   volume: number;
   speechRate: number;
   announcePayments: boolean;
+  announcePaidBills: boolean;
+  announceUpiConfirmation: boolean;
   announceOrders: boolean;
   announceReady: boolean;
+  announceWaiterCalls: boolean;
 }
 
 export interface AiCredits {

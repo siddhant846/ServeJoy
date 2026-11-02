@@ -50,6 +50,10 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
   const upiQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
     upiString
   )}&margin=6`;
+  const effectiveQrUrl =
+    cafeProfile.customQrEnabled && cafeProfile.customQrUrl
+      ? cafeProfile.customQrUrl
+      : upiQrUrl;
 
   const handleMarkPaid = (mode: PaymentMode) => {
     updateBillStatus(bill.id, 'paid', mode);
@@ -79,6 +83,8 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
       `*Date:* ${new Date(bill.date).toLocaleString()}\n` +
       (bill.tableNumber ? `*Table / Order:* ${bill.tableNumber}\n` : '') +
       (bill.customerName ? `*Customer:* ${bill.customerName}\n` : '') +
+      (cafeProfile.gstin ? `*GSTIN:* ${cafeProfile.gstin}\n` : '') +
+      (cafeProfile.fssaiNumber ? `*FSSAI:* ${cafeProfile.fssaiNumber}\n` : '') +
       `────────────────────────────\n` +
       `*ITEMS ORDERED:*\n` +
       `${itemsList}\n` +
@@ -89,9 +95,13 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
       `*GRAND TOTAL:* *${cafeProfile.currency}${bill.total}*\n` +
       `*Status:* ${paymentText}\n` +
       `*UPI ID:* ${upiId}\n` +
-      `*Pay Link:* ${upiString}\n` +
+      (cafeProfile.customQrEnabled && cafeProfile.customQrUrl
+        ? `*Payment:* Scan QR code on printed/digital bill\n`
+        : `*Pay Link:* ${upiString}\n`) +
       `────────────────────────────\n` +
-      `✨ *Thank you for dining at ${cafeProfile.name}!* 😊\n` +
+      (cafeProfile.invoiceNote
+        ? `✨ *${cafeProfile.invoiceNote}*\n`
+        : `✨ *Thank you for dining at ${cafeProfile.name}!* 😊\n`) +
       (cafeProfile.address ? `📍 ${cafeProfile.address}\n` : '') +
       (cafeProfile.phone ? `📞 ${cafeProfile.phone}\n` : '') +
       `Visit again soon!`
@@ -206,9 +216,16 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
           </style>
         </head>
         <body>
+          ${
+            cafeProfile.logoUrl
+              ? `<div class="center" style="margin-bottom: 4px;"><img src="${cafeProfile.logoUrl}" style="max-height: 40px; max-width: 100px; object-fit: contain;" /></div>`
+              : ''
+          }
           <div class="center title">${cafeProfile.name}</div>
-          <div class="center">${cafeProfile.address || ''}</div>
-          <div class="center">Ph: ${cafeProfile.phone || ''}</div>
+          ${cafeProfile.address ? `<div class="center">${cafeProfile.address}</div>` : ''}
+          ${cafeProfile.phone ? `<div class="center">Ph: ${cafeProfile.phone}</div>` : ''}
+          ${cafeProfile.gstin ? `<div class="center">GSTIN: ${cafeProfile.gstin}</div>` : ''}
+          ${cafeProfile.fssaiNumber ? `<div class="center">FSSAI: ${cafeProfile.fssaiNumber}</div>` : ''}
           <div class="divider"></div>
           <div class="item-row">
             <span>${bill.billNumber}</span>
@@ -255,11 +272,19 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
           </div>
           <div class="item-row">
             <span>Payment Mode:</span>
-            <span class="bold">${bill.paymentMode.toUpperCase()}</span>
+            <span class="bold">${bill.paymentMode.toUpperCase()} (${billStatus.toUpperCase()})</span>
+          </div>
+          <div class="divider"></div>
+          <div class="center" style="margin: 6px 0;">
+            <div style="font-size: 9px; font-weight: bold; margin-bottom: 3px;">
+              ${cafeProfile.customQrEnabled && cafeProfile.customQrUrl ? 'SCAN TO PAY VIA QR' : 'SCAN TO PAY VIA UPI'}
+            </div>
+            <img src="${effectiveQrUrl}" style="width: 110px; height: 110px; object-fit: contain; display: block; margin: 0 auto;" />
+            <div style="font-size: 8px; margin-top: 2px;">${upiId}</div>
           </div>
           <div class="divider"></div>
           <div class="footer">
-            Thank you for visiting ${cafeProfile.name}!<br />
+            ${cafeProfile.invoiceNote || `Thank you for visiting ${cafeProfile.name}!`}<br />
             Powered by ServeJoy POS
           </div>
         </body>
@@ -346,10 +371,25 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
           {/* Printable Receipt Card */}
           <div id="printable-receipt" className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm text-foreground space-y-3 font-sans">
             <div className="text-center space-y-1">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary text-accent">
-                <Printer className="h-5 w-5" />
-              </div>
+              {cafeProfile.logoUrl ? (
+                <img
+                  src={cafeProfile.logoUrl}
+                  alt="Logo"
+                  className="mx-auto h-10 w-10 rounded-xl object-contain"
+                />
+              ) : (
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary text-accent">
+                  <Printer className="h-5 w-5" />
+                </div>
+              )}
               <h3 className="font-display text-lg font-bold tracking-tight text-foreground">{cafeProfile.name}</h3>
+              {cafeProfile.address && (
+                <p className="text-[11px] text-muted-foreground line-clamp-1">{cafeProfile.address}</p>
+              )}
+              <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+                {cafeProfile.phone && <span>Ph: {cafeProfile.phone}</span>}
+                {cafeProfile.gstin && <span className="font-mono">GSTIN: {cafeProfile.gstin}</span>}
+              </div>
               <p className="font-receipt text-[11px] text-muted-foreground">
                 {new Date(bill.date).toLocaleDateString()} •{' '}
                 {new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -412,19 +452,25 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
             {/* QR Code inside Printable Slip */}
             <div className="text-center pt-1 pb-1 space-y-1">
               <p className="font-receipt text-[10px] font-bold text-muted-foreground uppercase">
-                Scan to Pay via UPI
+                {cafeProfile.customQrEnabled && cafeProfile.customQrUrl
+                  ? 'Merchant Pay QR'
+                  : 'Scan to Pay via UPI'}
               </p>
               <div className="mx-auto w-28 h-28 p-1.5 bg-white border border-border/80 rounded-2xl flex items-center justify-center shadow-sm">
-                <img src={upiQrUrl} alt="UPI QR" className="w-full h-full object-contain" />
+                <img src={effectiveQrUrl} alt="QR Code" className="w-full h-full object-contain" />
               </div>
               <p className="font-receipt text-[10px] text-muted-foreground">
-                GPay • PhonePe • Paytm • BHIM
+                {cafeProfile.customQrEnabled && cafeProfile.customQrUrl
+                  ? 'Scan with any UPI or Scanner App'
+                  : 'GPay • PhonePe • Paytm • BHIM'}
               </p>
               <p className="font-mono text-[9px] text-muted-foreground">{upiId}</p>
             </div>
 
             <div className="border-b border-dashed border-border" />
-            <p className="text-center text-xs text-muted-foreground font-sans">Thank you! Visit again 😊</p>
+            <p className="text-center text-xs text-muted-foreground font-sans">
+              {cafeProfile.invoiceNote || 'Thank you! Visit again 😊'}
+            </p>
           </div>
 
           {/* Interactive Scan to Pay UPI Section */}
@@ -441,8 +487,8 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
 
             <div className="mx-auto w-44 h-44 rounded-2xl overflow-hidden border border-border/80 p-2 bg-white shadow-inner flex items-center justify-center">
               <img
-                src={upiQrUrl}
-                alt="UPI Payment QR Code"
+                src={effectiveQrUrl}
+                alt="Payment QR Code"
                 className="w-full h-full object-contain"
               />
             </div>
