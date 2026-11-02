@@ -14,9 +14,9 @@ const firebaseConfig = {
   apiKey: 'AIzaSyB5Gg4T2hIHtqXHjiqT1H63W6ZkIBxxqZw',
   authDomain: 'servejoy-pos-live.firebaseapp.com',
   projectId: 'servejoy-pos-live',
-  storageBucket: 'servejoy-pos-live.appspot.com',
-  messagingSenderId: '1098485743012',
-  appId: '1:1098485743012:web:6e5e8e821e25e9e0',
+  storageBucket: 'servejoy-pos-live.firebasestorage.app',
+  messagingSenderId: '289924631895',
+  appId: '1:289924631895:web:a1b94fec7eb601246ec212',
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -58,6 +58,13 @@ export const signInWithGoogleReal = async (): Promise<{
       await signInWithRedirect(auth, googleProvider);
       throw new Error('Redirecting to Google Sign-In...');
     }
+    if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
+      const configErr: any = new Error(
+        'Google Authentication is not yet enabled in Firebase Console for project "servejoy-pos-live".'
+      );
+      configErr.code = 'auth/configuration-not-found';
+      throw configErr;
+    }
     throw err;
   }
 };
@@ -95,3 +102,4 @@ export const firebaseLogout = async (): Promise<void> => {
     console.warn('Firebase signOut error:', err);
   }
 };
+

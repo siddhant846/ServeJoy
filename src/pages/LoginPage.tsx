@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { storage, DEFAULT_BUSINESS_ACCOUNT } from '../services/storage';
 import { subscriptionService } from '../services/subscriptionService';
-import { Coffee, KeyRound, ArrowRight, ShieldCheck, Sparkles, Store, Lock, Mail, User, Phone, CheckCircle2 } from 'lucide-react';
+import { Coffee, KeyRound, ArrowRight, ShieldCheck, Sparkles, Store, Lock, Mail, User, Phone, CheckCircle2, AlertTriangle, ExternalLink, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const LoginPage: React.FC = () => {
@@ -27,6 +27,7 @@ export const LoginPage: React.FC = () => {
   const [selectedBizId, setSelectedBizId] = useState<string>(() => storage.getActiveBusinessId());
   const [staffPin, setStaffPin] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
 
   const registeredBusinesses = storage.getAllBusinesses();
 
@@ -39,8 +40,15 @@ export const LoginPage: React.FC = () => {
           toast.success(`Welcome back, ${res.user?.displayName}!`, { icon: '🎉' });
           navigate('/');
         }
-      } catch (err) {
-        console.warn('Redirect auth check warning:', err);
+      } catch (err: any) {
+        if (
+          err?.message?.includes('configuration-not-found') ||
+          err?.code === 'auth/configuration-not-found'
+        ) {
+          setShowConfigModal(true);
+        } else {
+          console.warn('Redirect auth check warning:', err);
+        }
       }
     };
     checkRedirect();
@@ -56,10 +64,26 @@ export const LoginPage: React.FC = () => {
         toast.success(`Welcome to ServeJoy, ${res.user?.displayName || 'Partner'}!`, { icon: '🎉' });
         navigate('/');
       } else {
-        toast.error(res.error || 'Google authentication was cancelled.');
+        if (
+          res.error?.includes('configuration-not-found') ||
+          res.error?.includes('operation-not-allowed') ||
+          res.error?.includes('not yet enabled')
+        ) {
+          setShowConfigModal(true);
+        } else {
+          toast.error(res.error || 'Google authentication was cancelled.');
+        }
       }
     } catch (err: any) {
-      toast.error('Google Sign-In error: ' + (err.message || String(err)));
+      if (
+        err?.message?.includes('configuration-not-found') ||
+        err?.message?.includes('operation-not-allowed') ||
+        err?.code === 'auth/configuration-not-found'
+      ) {
+        setShowConfigModal(true);
+      } else {
+        toast.error('Google Sign-In error: ' + (err.message || String(err)));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -414,6 +438,84 @@ export const LoginPage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Firebase Setup Guide Modal */}
+      {showConfigModal && (
+        <div
+          onClick={() => setShowConfigModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl border border-amber-500/40 bg-card p-6 shadow-elevated text-left space-y-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                  <AlertTriangle className="h-6 w-6 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base font-bold text-foreground">
+                    Enable Google Sign-In
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Firebase Project: <span className="font-mono text-accent">servejoy-pos-live</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowConfigModal(false)}
+                className="rounded-xl p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Firebase returned <code className="font-mono text-amber-500">auth/configuration-not-found</code>. In your Firebase Console, Google Authentication has to be enabled once:
+            </p>
+
+            <div className="space-y-2 rounded-2xl bg-secondary/60 p-3.5 border border-border text-xs">
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">1</span>
+                <p>Open <strong className="text-foreground">Authentication</strong> in Firebase Console</p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">2</span>
+                <p>Click <strong className="text-foreground">Get started</strong>, then click <strong className="text-foreground">Google</strong> under Sign-in providers</p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">3</span>
+                <p>Toggle <strong className="text-foreground">Enable</strong>, select your support email, and click <strong className="text-foreground">Save</strong></p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <a
+                href="https://console.firebase.google.com/project/servejoy-pos-live/authentication"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-accent py-3 px-4 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-98"
+              >
+                <span>Open Firebase Console (1-Click)</span>
+                <ExternalLink className="h-4 w-4" />
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfigModal(false);
+                  handleDemoLogin();
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-border bg-secondary py-2.5 px-4 text-xs font-bold text-foreground hover:bg-secondary/80 transition"
+              >
+                <span>Or Continue to Chai Point (Instant Demo)</span>
+                <ArrowRight className="h-3.5 w-3.5 text-accent" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
