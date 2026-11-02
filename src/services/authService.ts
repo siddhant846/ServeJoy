@@ -38,6 +38,24 @@ class AuthService {
     return !!this.getCurrentUser();
   }
 
+  /**
+   * Checks if current user has Super Admin authority.
+   * Matches Siddhant's Google emails, demo account, or users designated as superadmin.
+   */
+  isSuperAdmin(user?: AuthUser | null): boolean {
+    const u = user || this.getCurrentUser();
+    if (!u) return false;
+    const email = (u.email || '').toLowerCase().trim();
+    const name = (u.displayName || '').toLowerCase().trim();
+    return (
+      email.includes('siddhant') ||
+      email.includes('chaipoint') ||
+      name.includes('siddhant') ||
+      (u.role === 'owner' && (email.endsWith('@gmail.com') || email.includes('admin'))) ||
+      (u as any).isSuperAdmin === true
+    );
+  }
+
   subscribe(listener: (user: AuthUser | null) => void): () => void {
     this.listeners.add(listener);
     listener(this.currentUser);

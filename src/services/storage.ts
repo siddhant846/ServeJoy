@@ -426,6 +426,12 @@ export const storage = {
     localStorage.setItem(STORAGE_KEYS.BUSINESSES, JSON.stringify(list));
   },
 
+  deleteBusinessAccount(businessId: string): void {
+    if (businessId === DEFAULT_BUSINESS_ACCOUNT.id) return; // protect default demo account
+    const list = this.getAllBusinesses().filter((b) => b.id !== businessId);
+    localStorage.setItem(STORAGE_KEYS.BUSINESSES, JSON.stringify(list));
+  },
+
   getSubscription(businessId?: string): SubscriptionDetails {
     const bizId = businessId || this.getActiveBusinessId();
     try {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { subscriptionService } from '../../services/subscriptionService';
+import { authService } from '../../services/authService';
 import {
   Coffee,
   RefreshCw,
@@ -11,6 +12,7 @@ import {
   Sparkles,
   Settings,
   Clock,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface AppHeaderProps {
@@ -124,6 +126,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             >
               <Printer className="h-4 w-4" />
             </button>
+          )}
+
+          {/* Super Admin Master Console (Visible only to Platform Owner) */}
+          {authService.isSuperAdmin() && (
+            <Link
+              to="/admin"
+              aria-label="Super Admin Console"
+              title="ServeJoy Super Admin Platform Console"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/35 transition active:scale-95"
+            >
+              <ShieldAlert className="h-4 w-4 text-amber-400" />
+            </Link>
           )}
 
           {/* Business Profile, Soundbox, Theme & System Settings */}

@@ -49,6 +49,7 @@ export interface BusinessAccount {
   businessName: string;
   createdAt: string;
   subscription: SubscriptionDetails;
+  suspended?: boolean;
 }
 
 export interface AuthUser {

@@ -12,7 +12,9 @@ import { LoginPage } from './pages/LoginPage';
 import { PricingPage } from './pages/PricingPage';
 import { McpConsentPage } from './pages/McpConsentPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { SuperAdminPage } from './pages/SuperAdminPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { AdminProtectedRoute } from './components/auth/AdminProtectedRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +61,24 @@ export const App: React.FC = () => {
                   <ProtectedRoute allowedRoles={['owner', 'manager', 'kitchen']}>
                     <KitchenPage />
                   </ProtectedRoute>
+                }
+              />
+
+              {/* Super Admin Master Platform Console */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminProtectedRoute>
+                    <SuperAdminPage />
+                  </AdminProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin"
+                element={
+                  <AdminProtectedRoute>
+                    <SuperAdminPage />
+                  </AdminProtectedRoute>
                 }
               />
 

@@ -1400,6 +1400,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* ================= TAB 7: ACCOUNT & BACKUP ================= */}
           {activeTab === 'account' && (
             <div className="space-y-4">
+              {/* Super Admin Console Access (Platform Owner) */}
+              {authService.isSuperAdmin() && (
+                <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                        <ShieldAlert className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <span>Super Admin Master Console</span>
+                          <span className="rounded bg-amber-500/20 px-1.5 py-0.2 text-[9px] font-bold text-amber-500 uppercase">
+                            Founder
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground">
+                          Inspect all restaurants, extend trials, track MRR & manage subscribers
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      to="/admin"
+                      onClick={onClose}
+                      className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-accent/90 transition active:scale-95 shrink-0"
+                    >
+                      <span>Open Admin</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {/* Active Role & SaaS Subscription Status */}
               <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
