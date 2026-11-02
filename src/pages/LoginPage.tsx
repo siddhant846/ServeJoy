@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { storage, DEFAULT_BUSINESS_ACCOUNT } from '../services/storage';
@@ -30,29 +30,33 @@ export const LoginPage: React.FC = () => {
 
   const registeredBusinesses = storage.getAllBusinesses();
 
-  // Handle Google OAuth Sign-In / Sign-Up
+  // Check redirect result on mount (for mobile browser redirect flows)
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        const res = await authService.handleRedirectResult();
+        if (res && res.success) {
+          toast.success(`Welcome back, ${res.user?.displayName}!`, { icon: '🎉' });
+          navigate('/');
+        }
+      } catch (err) {
+        console.warn('Redirect auth check warning:', err);
+      }
+    };
+    checkRedirect();
+  }, [navigate]);
+
+  // Handle REAL Google OAuth Sign-In / Sign-Up
   const handleGoogleAuth = async () => {
     setIsLoading(true);
     try {
-      const googleMockUser = {
-        email: email || 'owner@restaurant.com',
-        displayName: ownerName || 'Restaurant Owner',
-        googleUid: `google_uid_${Date.now()}`,
-        photoURL: 'https://lh3.googleusercontent.com/a/default-user',
-      };
-
-      const res = await authService.loginOwner(
-        googleMockUser.email,
-        googleMockUser.googleUid,
-        googleMockUser.photoURL,
-        googleMockUser.displayName
-      );
+      const res = await authService.loginWithGoogle();
 
       if (res.success) {
-        toast.success(`Welcome to ServeJoy, ${res.user?.displayName}!`, { icon: '🎉' });
+        toast.success(`Welcome to ServeJoy, ${res.user?.displayName || 'Partner'}!`, { icon: '🎉' });
         navigate('/');
       } else {
-        toast.error(res.error || 'Google authentication failed.');
+        toast.error(res.error || 'Google authentication was cancelled.');
       }
     } catch (err: any) {
       toast.error('Google Sign-In error: ' + (err.message || String(err)));

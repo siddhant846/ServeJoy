@@ -1,5 +1,6 @@
 import { AuthUser, BusinessAccount, UserRole, Staff } from '../types';
 import { storage, createDefaultSubscription, DEFAULT_BUSINESS_ACCOUNT } from './storage';
+import { signInWithGoogleReal, checkRedirectResult, firebaseLogout } from './firebase';
 
 export interface LoginResult {
   success: boolean;
@@ -139,6 +140,45 @@ class AuthService {
   }
 
   /**
+   * Real Google OAuth Login & Registration
+   * Triggers the authentic Google popup with 'prompt: select_account' so the user picks their actual account.
+   */
+  async loginWithGoogle(): Promise<LoginResult> {
+    try {
+      const googleUser = await signInWithGoogleReal();
+      return this.loginOwner(
+        googleUser.email,
+        googleUser.uid,
+        googleUser.photoURL,
+        googleUser.displayName
+      );
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Google Sign-In failed' };
+    }
+  }
+
+  /**
+   * Handle redirect result if signInWithRedirect was used (e.g. mobile popup blocked)
+   */
+  async handleRedirectResult(): Promise<LoginResult | null> {
+    try {
+      const googleUser = await checkRedirectResult();
+      if (googleUser) {
+        return this.loginOwner(
+          googleUser.email,
+          googleUser.uid,
+          googleUser.photoURL,
+          googleUser.displayName
+        );
+      }
+      return null;
+    } catch (err: any) {
+      console.warn('Redirect auth check error:', err);
+      return null;
+    }
+  }
+
+  /**
    * Login Owner via Google OAuth / Email
    */
   async loginOwner(email: string, googleUid?: string, photoURL?: string, displayName?: string): Promise<LoginResult> {
@@ -146,6 +186,13 @@ class AuthService {
       const cleanEmail = email.trim().toLowerCase();
       const allBiz = storage.getAllBusinesses();
       let account = allBiz.find((b) => b.ownerEmail.toLowerCase() === cleanEmail);
+
+      // Recognize Siddhant / Chai Point account and bind their Google email
+      if (!account && (cleanEmail.includes('siddhant') || cleanEmail.includes('chaipoint') || (displayName && displayName.toLowerCase().includes('siddhant')))) {
+        account = { ...DEFAULT_BUSINESS_ACCOUNT, ownerEmail: cleanEmail };
+        if (displayName) account.ownerName = displayName;
+        storage.saveBusinessAccount(account);
+      }
 
       // If logging in via Google for the first time and not found, automatically register them with 7-day trial
       if (!account && googleUid) {
@@ -159,15 +206,10 @@ class AuthService {
       }
 
       if (!account) {
-        // Fallback check for demo Chai Point account
-        if (cleanEmail.includes('siddhant') || cleanEmail.includes('chaipoint')) {
-          account = DEFAULT_BUSINESS_ACCOUNT;
-        } else {
-          return {
-            success: false,
-            error: 'No business found with this email. Please click "Sign Up" to create your restaurant account.',
-          };
-        }
+        return {
+          success: false,
+          error: 'No business found with this email. Please click "Sign Up" to create your restaurant account.',
+        };
       }
 
       storage.setActiveBusinessId(account.id);
@@ -270,7 +312,12 @@ class AuthService {
     }
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
+    try {
+      await firebaseLogout();
+    } catch (err) {
+      console.warn('Firebase logout notice:', err);
+    }
     this.currentUser = null;
     storage.saveAuthUser(null);
     this.notify();
@@ -278,3 +325,4 @@ class AuthService {
 }
 
 export const authService = new AuthService();
+
