@@ -4,7 +4,11 @@ import { Navbar } from '../components/common/Navbar';
 import { ChefHat, Clock, CheckCircle2, Flame, AlertTriangle, Volume2 } from 'lucide-react';
 import { OrderStatus } from '../types';
 
-export const KitchenPage: React.FC = () => {
+interface KitchenPageProps {
+  hideNavbar?: boolean;
+}
+
+export const KitchenPage: React.FC<KitchenPageProps> = ({ hideNavbar = false }) => {
   const { orders, updateOrderStatus, cafeProfile } = useApp();
   const [filter, setFilter] = useState<'active' | 'preparing' | 'ready' | 'all'>('active');
 
@@ -28,8 +32,8 @@ export const KitchenPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className={hideNavbar ? "pb-24 space-y-4" : "min-h-screen bg-background"}>
+      {!hideNavbar && <Navbar />}
 
       <main className="mx-auto max-w-7xl px-3 sm:px-6 py-4 space-y-4">
         {/* Top Header & Filter Bar */}

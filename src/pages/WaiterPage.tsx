@@ -15,7 +15,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export const WaiterPage: React.FC = () => {
+interface WaiterPageProps {
+  hideNavbar?: boolean;
+}
+
+export const WaiterPage: React.FC<WaiterPageProps> = ({ hideNavbar = false }) => {
   const {
     cafeProfile,
     menuItems,
@@ -89,8 +93,8 @@ export const WaiterPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className={hideNavbar ? "pb-24 space-y-4" : "min-h-screen bg-background"}>
+      {!hideNavbar && <Navbar />}
 
       <main className="mx-auto max-w-7xl px-3 sm:px-6 py-4 space-y-4">
         {/* Real-time Waiter Service Requests Alert Feed */}
