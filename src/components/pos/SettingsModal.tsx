@@ -55,7 +55,7 @@ import { useNavigate, Link } from 'react-router-dom';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'profile' | 'custom-qr' | 'soundbox' | 'appearance' | 'staff' | 'subscription' | 'account';
+  initialTab?: 'profile' | 'tables' | 'custom-qr' | 'soundbox' | 'appearance' | 'staff' | 'subscription' | 'account';
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -70,6 +70,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     updateSoundboxSettings,
     userRole,
     setUserRole,
+    tables,
+    addTable,
+    addMultipleTables,
+    deleteTable,
+    resetTablesToDefault,
   } = useApp();
 
   const navigate = useNavigate();
@@ -77,8 +82,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Active tab inside settings modal
   const [activeTab, setActiveTab] = useState<
-    'profile' | 'custom-qr' | 'soundbox' | 'appearance' | 'staff' | 'subscription' | 'account'
+    'profile' | 'tables' | 'custom-qr' | 'soundbox' | 'appearance' | 'staff' | 'subscription' | 'account'
   >(initialTab);
+
+  // Table tab local state
+  const [newTableName, setNewTableName] = useState<string>('');
+  const [newTableSection, setNewTableSection] = useState<string>('Main Hall');
+  const [newTableCapacity, setNewTableCapacity] = useState<number>(4);
+  const [bulkCount, setBulkCount] = useState<number>(5);
+  const [bulkPrefix, setBulkPrefix] = useState<string>('Table');
 
   // Form states initialized with current profile
   const [profileForm, setProfileForm] = useState<CafeProfile>({ ...cafeProfile });
@@ -326,6 +338,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             <Building2 className="h-3.5 w-3.5" />
             <span>Profile</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('tables')}
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 font-bold transition active:scale-95 ${
+              activeTab === 'tables'
+                ? 'bg-card text-accent shadow-sm border border-border/60'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span>🪑</span>
+            <span>Tables ({tables.length})</span>
           </button>
 
           <button
@@ -659,6 +683,246 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               </div>
             </form>
+          )}
+
+          {/* ================= TAB: TABLES & FLOOR MANAGEMENT ================= */}
+          {activeTab === 'tables' && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b border-border/80">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">
+                      Dining Tables & Sections ({tables.length} Total)
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      Add as many tables as you need. All tables sync to Floor Plan, POS, and Waiter apps.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let max = 0;
+                      tables.forEach((t) => {
+                        const m = t.name.match(/Table\s*(\d+)/i);
+                        if (m) {
+                          const n = parseInt(m[1], 10);
+                          if (n > max) max = n;
+                        }
+                      });
+                      addTable({
+                        name: `Table ${max + 1}`,
+                        section: newTableSection || 'Main Hall',
+                        capacity: newTableCapacity || 4,
+                      });
+                    }}
+                    className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:opacity-95 transition active:scale-95"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Quick Add Next Table</span>
+                  </button>
+                </div>
+
+                {/* Add Single Table Form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    let max = 0;
+                    tables.forEach((t) => {
+                      const m = t.name.match(/Table\s*(\d+)/i);
+                      if (m) {
+                        const n = parseInt(m[1], 10);
+                        if (n > max) max = n;
+                      }
+                    });
+                    const finalName = newTableName.trim() || `Table ${max + 1}`;
+                    try {
+                      addTable({
+                        name: finalName,
+                        section: newTableSection || 'Main Hall',
+                        capacity: newTableCapacity,
+                      });
+                      setNewTableName('');
+                    } catch {
+                      // Handled
+                    }
+                  }}
+                  className="space-y-3 pt-1"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-muted-foreground block mb-1">
+                        Table Name or Number *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Table 7, Rooftop 2"
+                        value={newTableName}
+                        onChange={(e) => setNewTableName(e.target.value)}
+                        className="w-full rounded-xl border border-input bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-muted-foreground block mb-1">
+                        Section / Floor Zone
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Main Hall, Patio, Rooftop"
+                        value={newTableSection}
+                        onChange={(e) => setNewTableSection(e.target.value)}
+                        className="w-full rounded-xl border border-input bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-muted-foreground block mb-1">
+                        Seating Capacity
+                      </label>
+                      <div className="flex gap-1">
+                        {[2, 4, 6, 8].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setNewTableCapacity(n)}
+                            className={`flex-1 py-1.5 rounded-lg border text-xs font-bold transition ${
+                              newTableCapacity === n
+                                ? 'border-accent bg-accent text-white'
+                                : 'border-border bg-secondary text-muted-foreground'
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white shadow-sm hover:opacity-95 transition"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Add Table</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Bulk Add Tables Card */}
+              <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📦</span>
+                  <h4 className="text-xs font-bold text-foreground">
+                    Bulk Generate Tables (Add Any Quantity)
+                  </h4>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Quickly add 5, 10, or 20 tables with auto-incremented numbers.
+                </p>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (bulkCount <= 0 || bulkCount > 100) {
+                      toast.error('Count must be between 1 and 100');
+                      return;
+                    }
+                    addMultipleTables(bulkCount, newTableSection || 'Main Hall', bulkPrefix.trim() || 'Table');
+                  }}
+                  className="flex flex-wrap items-end gap-2.5 pt-1"
+                >
+                  <div>
+                    <label className="text-[10px] font-bold text-muted-foreground block mb-1">Prefix</label>
+                    <input
+                      type="text"
+                      value={bulkPrefix}
+                      onChange={(e) => setBulkPrefix(e.target.value)}
+                      placeholder="Table"
+                      className="w-28 rounded-xl border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-muted-foreground block mb-1">Quantity</label>
+                    <div className="flex items-center gap-1">
+                      {[5, 10, 20].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setBulkCount(n)}
+                          className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition ${
+                            bulkCount === n
+                              ? 'border-accent bg-accent text-white'
+                              : 'border-border bg-secondary text-muted-foreground'
+                          }`}
+                        >
+                          +{n}
+                        </button>
+                      ))}
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={bulkCount}
+                        onChange={(e) => setBulkCount(parseInt(e.target.value, 10) || 1)}
+                        className="w-16 rounded-xl border border-input bg-card px-2 py-1.5 text-xs text-foreground font-bold text-center focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 px-4 py-2 text-xs font-bold text-white shadow-sm hover:opacity-95 transition"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Generate {bulkCount} Tables</span>
+                  </button>
+                </form>
+              </div>
+
+              {/* Table Inventory Grid */}
+              <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-foreground">
+                    Active Tables Inventory ({tables.length})
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={resetTablesToDefault}
+                    className="text-[10px] font-bold text-muted-foreground hover:text-foreground transition underline"
+                  >
+                    Reset to Default Layout
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                  {tables.map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between rounded-xl border border-border bg-secondary/30 p-2.5 text-xs"
+                    >
+                      <div className="min-w-0 pr-1">
+                        <p className="font-bold text-foreground truncate">{t.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{t.section}</p>
+                        <p className="text-[9px] text-muted-foreground/70">{t.capacity} seats</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => deleteTable(t.id)}
+                        title={`Delete ${t.name}`}
+                        className="h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition shrink-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* ================= TAB 2: CUSTOM QR CODE ON BILLS ================= */}

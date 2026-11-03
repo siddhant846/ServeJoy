@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
+import { AddTableModal } from './AddTableModal';
 import { ShoppingBag, Trash2, Plus, Minus, ChefHat, Receipt, Tag, User, Phone, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -18,14 +19,16 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
     cartTotal,
     cafeProfile,
     placeOrder,
+    tables,
   } = useApp();
 
-  const [selectedTable, setSelectedTable] = useState<string>('Table 1');
+  const [selectedTable, setSelectedTable] = useState<string>(() => tables[0]?.name || 'Table 1');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [customerNote, setCustomerNote] = useState<string>('');
   const [discountCode, setDiscountCode] = useState<string>('');
   const [isBouncing, setIsBouncing] = useState<boolean>(false);
+  const [isAddTableOpen, setIsAddTableOpen] = useState<boolean>(false);
   const prevCountRef = useRef(cartCount);
 
   useEffect(() => {
@@ -37,7 +40,10 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
     prevCountRef.current = cartCount;
   }, [cartCount]);
 
-  const tables = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Takeaway'];
+  const tableList = tables.map((t) => t.name);
+  if (!tableList.includes(selectedTable) && tableList.length > 0) {
+    setSelectedTable(tableList[0]);
+  }
 
   const handlePunchKot = () => {
     if (cart.length === 0) {
@@ -124,11 +130,21 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
 
       {/* Table Selector */}
       <div className="mt-3">
-        <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-          Select Dining Table
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+            Select Dining Table ({tables.length})
+          </label>
+          <button
+            type="button"
+            onClick={() => setIsAddTableOpen(true)}
+            className="flex items-center gap-1 text-[11px] font-bold text-accent hover:underline"
+          >
+            <Plus className="h-3 w-3" />
+            <span>Add Table</span>
+          </button>
+        </div>
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-          {tables.map((t) => (
+          {tableList.map((t) => (
             <button
               key={t}
               onClick={() => setSelectedTable(t)}
@@ -141,6 +157,14 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
               {t}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setIsAddTableOpen(true)}
+            className="shrink-0 flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold border border-dashed border-accent/60 text-accent hover:bg-accent/10 transition"
+          >
+            <Plus className="h-3 w-3" />
+            <span>Add More</span>
+          </button>
         </div>
       </div>
 
@@ -243,6 +267,11 @@ export const CartSheet: React.FC<CartSheetProps> = ({ onGenerateBill, onClose })
           </button>
         </div>
       </div>
+
+      <AddTableModal
+        isOpen={isAddTableOpen}
+        onClose={() => setIsAddTableOpen(false)}
+      />
     </div>
   );
 };

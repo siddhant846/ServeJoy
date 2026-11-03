@@ -210,3 +210,15 @@ export interface CloudSyncStatus {
   error: string | null;
 }
 
+export interface RestaurantTable {
+  id: string;
+  businessId?: string;
+  name: string;
+  section: string;
+  capacity: number;
+  shape?: 'square' | 'round' | 'rect';
+  isActive?: boolean;
+  createdAt?: string;
+}
+
+

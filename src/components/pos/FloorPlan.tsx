@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { RestaurantTable } from '../../types';
+import { AddTableModal } from './AddTableModal';
 import {
   Users,
   Clock,
@@ -8,41 +10,29 @@ import {
   Receipt,
   Bell,
   CheckCircle2,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface FloorTable {
-  id: string;
-  name: string;
-  section: 'main' | 'patio' | 'vip' | 'counter';
-  sectionLabel: string;
-  capacity: number;
-  shape: 'square' | 'round' | 'rect';
-}
-
-const FLOOR_TABLES: FloorTable[] = [
-  { id: 't1', name: 'Table 1', section: 'main', sectionLabel: 'Main Hall', capacity: 4, shape: 'square' },
-  { id: 't2', name: 'Table 2', section: 'main', sectionLabel: 'Main Hall', capacity: 4, shape: 'square' },
-  { id: 't3', name: 'Table 3', section: 'main', sectionLabel: 'Main Hall', capacity: 2, shape: 'round' },
-  { id: 't4', name: 'Table 4', section: 'main', sectionLabel: 'Main Hall', capacity: 4, shape: 'square' },
-  { id: 't5', name: 'Table 5', section: 'main', sectionLabel: 'Main Hall', capacity: 6, shape: 'rect' },
-  { id: 't6', name: 'Table 6', section: 'main', sectionLabel: 'Main Hall', capacity: 4, shape: 'square' },
-  { id: 'p1', name: 'Patio 1', section: 'patio', sectionLabel: 'Outdoor Patio', capacity: 4, shape: 'round' },
-  { id: 'p2', name: 'Patio 2', section: 'patio', sectionLabel: 'Outdoor Patio', capacity: 4, shape: 'round' },
-  { id: 'p3', name: 'Terrace A', section: 'patio', sectionLabel: 'Outdoor Patio', capacity: 6, shape: 'rect' },
-  { id: 'v1', name: 'VIP Lounge 1', section: 'vip', sectionLabel: 'VIP Lounge', capacity: 8, shape: 'rect' },
-  { id: 'v2', name: 'VIP Lounge 2', section: 'vip', sectionLabel: 'VIP Lounge', capacity: 6, shape: 'rect' },
-  { id: 'c1', name: 'Counter', section: 'counter', sectionLabel: 'Takeaway / Parcel', capacity: 2, shape: 'square' },
-];
 
 interface FloorPlanProps {
   onStartOrderForTable: (tableName: string) => void;
 }
 
 export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) => {
-  const { orders, waiterRequests, convertOrderToBill, updateWaiterRequestStatus, cafeProfile } = useApp();
+  const { tables, deleteTable, orders, waiterRequests, convertOrderToBill, updateWaiterRequestStatus, cafeProfile } = useApp();
   const [activeSection, setActiveSection] = useState<string>('all');
-  const [selectedTableData, setSelectedTableData] = useState<FloorTable | null>(null);
+  const [selectedTableData, setSelectedTableData] = useState<RestaurantTable | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+
+  // Dynamic sections derived from existing tables
+  const sections = useMemo(() => {
+    const set = new Set<string>();
+    tables.forEach((t) => {
+      if (t.section) set.add(t.section);
+    });
+    return ['all', ...Array.from(set)];
+  }, [tables]);
 
   // Map each table to its live state
   const tableStateMap = useMemo(() => {
@@ -56,7 +46,7 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
       }
     >();
 
-    FLOOR_TABLES.forEach((table) => {
+    tables.forEach((table) => {
       const activeOrder =
         orders.find(
           (o) =>
@@ -95,7 +85,7 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
     });
 
     return map;
-  }, [orders, waiterRequests]);
+  }, [tables, orders, waiterRequests]);
 
   // Status counts
   const counts = useMemo(() => {
@@ -117,9 +107,9 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
   }, [tableStateMap]);
 
   const filteredTables = useMemo(() => {
-    if (activeSection === 'all') return FLOOR_TABLES;
-    return FLOOR_TABLES.filter((t) => t.section === activeSection);
-  }, [activeSection]);
+    if (activeSection === 'all') return tables;
+    return tables.filter((t) => t.section === activeSection);
+  }, [tables, activeSection]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -139,14 +129,14 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="rounded-3xl border border-border/80 bg-card p-4 shadow-card">
-        {/* Header & Filter Pills */}
+        {/* Header & Filter Pills & Add Table Button */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-xl font-bold text-foreground">Table Floor Plan</h2>
               <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live Floor
+                Live Floor ({tables.length} Tables)
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -154,26 +144,31 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
             </p>
           </div>
 
-          <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            {[
-              { id: 'all', label: 'All Tables' },
-              { id: 'main', label: 'Main Hall' },
-              { id: 'patio', label: 'Outdoor Patio' },
-              { id: 'vip', label: 'VIP Lounge' },
-              { id: 'counter', label: 'Counter' },
-            ].map((sec) => (
-              <button
-                key={sec.id}
-                onClick={() => setActiveSection(sec.id)}
-                className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-                  activeSection === sec.id
-                    ? 'bg-accent text-white shadow-sm'
-                    : 'bg-secondary text-foreground hover:bg-muted'
-                }`}
-              >
-                {sec.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              {sections.map((sec) => (
+                <button
+                  key={sec}
+                  onClick={() => setActiveSection(sec)}
+                  className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                    activeSection === sec
+                      ? 'bg-accent text-white shadow-sm'
+                      : 'bg-secondary text-foreground hover:bg-muted'
+                  }`}
+                >
+                  {sec === 'all' ? 'All Tables' : sec}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-accent px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:opacity-95 transition active:scale-95 shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Table</span>
+            </button>
           </div>
         </div>
 
@@ -258,19 +253,21 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
                     </span>
                   </div>
 
-                  <div className="mt-2 flex items-center justify-between">
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{table.section}</span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${badge.bg}`}
                     >
                       {badge.label}
                     </span>
-                    {info.durationMinutes > 0 && (
-                      <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {info.durationMinutes}m
-                      </span>
-                    )}
                   </div>
+
+                  {info.durationMinutes > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>{info.durationMinutes}m active</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-xs">
@@ -294,6 +291,18 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
               </div>
             );
           })}
+
+          {/* Quick inline Add Table Card */}
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/80 bg-secondary/20 p-6 hover:bg-secondary/40 hover:border-accent/50 transition active:scale-98 text-muted-foreground hover:text-foreground min-h-[120px]"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+              <Plus className="h-5 w-5" />
+            </div>
+            <span className="text-xs font-bold">+ Add Table</span>
+          </button>
         </div>
       </div>
 
@@ -305,7 +314,7 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
               {selectedTableData.name} Details
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {selectedTableData.sectionLabel} • Capacity {selectedTableData.capacity} guests
+              {selectedTableData.section} • Capacity {selectedTableData.capacity} guests
             </p>
 
             {(() => {
@@ -357,6 +366,20 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
                       </button>
                     )}
                   </div>
+
+                  {!info.activeOrder && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteTable(selectedTableData.id);
+                        setSelectedTableData(null);
+                      }}
+                      className="w-full mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 text-red-500 hover:bg-red-500/10 py-2 text-xs font-bold transition"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Delete {selectedTableData.name}</span>
+                    </button>
+                  )}
                 </div>
               );
             })()}
@@ -370,6 +393,13 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({ onStartOrderForTable }) =>
           </div>
         </div>
       )}
+
+      {/* Add Table Modal */}
+      <AddTableModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        defaultSection={activeSection !== 'all' ? activeSection : 'Main Hall'}
+      />
     </div>
   );
 };

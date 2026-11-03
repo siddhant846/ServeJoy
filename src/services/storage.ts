@@ -12,11 +12,13 @@ import {
   SubscriptionDetails,
   AuthUser,
   SubscriptionTier,
+  RestaurantTable,
 } from '../types';
 
 export const STORAGE_KEYS = {
   CAFE: 'servejoy_cafe_profile',
   MENU: 'servejoy_menu_items',
+  TABLES: 'servejoy_tables',
   BILLS: 'servejoy_bills',
   ORDERS: 'servejoy_orders',
   STAFF: 'servejoy_staff',
@@ -51,6 +53,21 @@ export const DEFAULT_CAFE_PROFILE: CafeProfile = {
   customQrEnabled: false,
   invoiceNote: 'Thank you for visiting! Scan to Pay or share feedback.',
 };
+
+export const DEFAULT_TABLES: RestaurantTable[] = [
+  { id: 't1', name: 'Table 1', section: 'Main Hall', capacity: 4, shape: 'square', isActive: true },
+  { id: 't2', name: 'Table 2', section: 'Main Hall', capacity: 4, shape: 'square', isActive: true },
+  { id: 't3', name: 'Table 3', section: 'Main Hall', capacity: 2, shape: 'round', isActive: true },
+  { id: 't4', name: 'Table 4', section: 'Main Hall', capacity: 4, shape: 'square', isActive: true },
+  { id: 't5', name: 'Table 5', section: 'Main Hall', capacity: 6, shape: 'rect', isActive: true },
+  { id: 't6', name: 'Table 6', section: 'Main Hall', capacity: 4, shape: 'square', isActive: true },
+  { id: 'p1', name: 'Patio 1', section: 'Outdoor Patio', capacity: 4, shape: 'round', isActive: true },
+  { id: 'p2', name: 'Patio 2', section: 'Outdoor Patio', capacity: 4, shape: 'round', isActive: true },
+  { id: 'p3', name: 'Terrace A', section: 'Outdoor Patio', capacity: 6, shape: 'rect', isActive: true },
+  { id: 'v1', name: 'VIP Lounge 1', section: 'VIP Lounge', capacity: 8, shape: 'rect', isActive: true },
+  { id: 'v2', name: 'VIP Lounge 2', section: 'VIP Lounge', capacity: 6, shape: 'rect', isActive: true },
+  { id: 'c1', name: 'Takeaway', section: 'Counter', capacity: 2, shape: 'square', isActive: true },
+];
 
 export const DEFAULT_MENU_ITEMS: MenuItem[] = [
   {
@@ -720,6 +737,29 @@ export const storage = {
 
   saveNetworkHost(host: string): void {
     localStorage.setItem(STORAGE_KEYS.NETWORK_HOST, host);
+  },
+
+  getTables(businessId?: string): RestaurantTable[] {
+    try {
+      const bizId = businessId || this.getActiveBusinessId();
+      const scopedKey = this.getScopedKey('tables', bizId);
+      const data = localStorage.getItem(scopedKey);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_TABLES;
+    } catch {
+      return DEFAULT_TABLES;
+    }
+  },
+
+  saveTables(tables: RestaurantTable[], businessId?: string): void {
+    const bizId = businessId || this.getActiveBusinessId();
+    localStorage.setItem(this.getScopedKey('tables', bizId), JSON.stringify(tables));
+    if (bizId === 'cafe_chai_point_01') {
+      localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(tables));
+    }
   },
 };
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { AddTableModal } from '../components/pos/AddTableModal';
 import { Navbar } from '../components/common/Navbar';
 import {
   UtensilsCrossed,
@@ -26,14 +27,19 @@ export const WaiterPage: React.FC<WaiterPageProps> = ({ hideNavbar = false }) =>
     waiterRequests,
     updateWaiterRequestStatus,
     placeOrder,
+    tables,
   } = useApp();
 
-  const [selectedTable, setSelectedTable] = useState<string>('Table 2');
+  const [selectedTable, setSelectedTable] = useState<string>(() => tables[0]?.name || 'Table 1');
   const [waiterCart, setWaiterCart] = useState<{ [id: string]: number }>({});
   const [search, setSearch] = useState<string>('');
   const [note, setNote] = useState<string>('');
+  const [isAddTableOpen, setIsAddTableOpen] = useState<boolean>(false);
 
-  const tables = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Takeaway'];
+  const tableList = tables.map((t) => t.name);
+  if (!tableList.includes(selectedTable) && tableList.length > 0) {
+    setSelectedTable(tableList[0]);
+  }
 
   const pendingRequests = waiterRequests.filter((r) => r.status === 'pending');
 
@@ -233,11 +239,21 @@ export const WaiterPage: React.FC<WaiterPageProps> = ({ hideNavbar = false }) =>
 
               {/* Table Selector */}
               <div className="mt-3">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">
-                  Target Table
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase block">
+                    Target Table ({tables.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddTableOpen(true)}
+                    className="flex items-center gap-1 text-[10px] font-bold text-accent hover:underline"
+                  >
+                    <Plus className="h-2.5 w-2.5" />
+                    <span>Add Table</span>
+                  </button>
+                </div>
                 <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                  {tables.map((t) => (
+                  {tableList.map((t) => (
                     <button
                       key={t}
                       onClick={() => setSelectedTable(t)}
@@ -250,6 +266,14 @@ export const WaiterPage: React.FC<WaiterPageProps> = ({ hideNavbar = false }) =>
                       {t}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setIsAddTableOpen(true)}
+                    className="shrink-0 flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold border border-dashed border-accent/60 text-accent hover:bg-accent/10 transition"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Add More</span>
+                  </button>
                 </div>
               </div>
 
@@ -315,6 +339,11 @@ export const WaiterPage: React.FC<WaiterPageProps> = ({ hideNavbar = false }) =>
           </div>
         </div>
       </main>
+
+      <AddTableModal
+        isOpen={isAddTableOpen}
+        onClose={() => setIsAddTableOpen(false)}
+      />
     </div>
   );
 };

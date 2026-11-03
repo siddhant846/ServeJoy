@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { AddTableModal } from './AddTableModal';
 import { Bill } from '../../types';
 import { X, Trash2, Plus, Minus, Receipt, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,15 +16,19 @@ export const CartModal: React.FC<CartModalProps> = ({
   onClose,
   onBillGenerated,
 }) => {
-  const { cart, updateCartQuantity, clearCart, createBill, cafeProfile, cartTotal, cartCount } = useApp();
+  const { cart, updateCartQuantity, clearCart, createBill, cafeProfile, cartTotal, cartCount, tables } = useApp();
 
-  const [selectedTable, setSelectedTable] = useState<string>('Table 1');
+  const [selectedTable, setSelectedTable] = useState<string>(() => tables[0]?.name || 'Table 1');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [customerNote, setCustomerNote] = useState<string>('');
   const [paymentMode, setPaymentMode] = useState<'upi' | 'cash' | 'card'>('upi');
+  const [isAddTableOpen, setIsAddTableOpen] = useState<boolean>(false);
 
-  const tables = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Takeaway'];
+  const tableList = tables.map((t) => t.name);
+  if (!tableList.includes(selectedTable) && tableList.length > 0) {
+    setSelectedTable(tableList[0]);
+  }
 
   if (!isOpen) return null;
 
@@ -97,11 +102,21 @@ export const CartModal: React.FC<CartModalProps> = ({
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {/* Table Selector */}
           <div>
-            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-              Select Dining Table
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Select Dining Table ({tables.length})
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsAddTableOpen(true)}
+                className="flex items-center gap-1 text-[11px] font-bold text-accent hover:underline"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Add Table</span>
+              </button>
+            </div>
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              {tables.map((t) => (
+              {tableList.map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -115,6 +130,14 @@ export const CartModal: React.FC<CartModalProps> = ({
                   {t}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setIsAddTableOpen(true)}
+                className="shrink-0 flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold border border-dashed border-accent/60 text-accent hover:bg-accent/10 transition"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Add More</span>
+              </button>
             </div>
           </div>
 
@@ -209,6 +232,11 @@ export const CartModal: React.FC<CartModalProps> = ({
           </div>
         )}
       </div>
+
+      <AddTableModal
+        isOpen={isAddTableOpen}
+        onClose={() => setIsAddTableOpen(false)}
+      />
     </div>
   );
 };

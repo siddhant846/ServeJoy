@@ -410,3 +410,4 @@ export const EditDishModal: React.FC<EditDishModalProps> = ({
     </div>
   );
 };
+

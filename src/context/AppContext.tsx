@@ -15,8 +15,9 @@ import {
   PaymentMode,
   CloudSyncStatus,
   AppTheme,
+  RestaurantTable,
 } from '../types';
-import { storage } from '../services/storage';
+import { storage, DEFAULT_TABLES } from '../services/storage';
 import { cloudSync } from '../services/cloudSync';
 import { soundbox } from '../services/soundbox';
 import { matchLocalDishImage } from '../services/aiService';
@@ -35,6 +36,13 @@ interface AppContextType {
   toggleItemAvailability: (id: string) => void;
   regenerateDishImage: (itemId: string) => void;
   regenerateAllDishImages: () => void;
+
+  tables: RestaurantTable[];
+  addTable: (data: { name: string; section?: string; capacity?: number; shape?: 'square' | 'round' | 'rect' }) => RestaurantTable;
+  addMultipleTables: (count: number, section?: string, prefix?: string) => void;
+  updateTable: (table: RestaurantTable) => void;
+  deleteTable: (id: string) => void;
+  resetTablesToDefault: () => void;
 
   cart: CartItem[];
   addToCart: (item: MenuItem) => void;
@@ -107,6 +115,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [cafeProfile, setCafeProfile] = useState<CafeProfile>(() => storage.getCafeProfile());
   const [userRole, setUserRole] = useState<UserRole>('owner');
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => storage.getMenuItems());
+  const [tables, setTables] = useState<RestaurantTable[]>(() => storage.getTables());
   const [cart, setCart] = useState<CartItem[]>([]);
   const [bills, setBills] = useState<Bill[]>(() => storage.getBills());
   const [orders, setOrders] = useState<Order[]>(() => storage.getOrders());
@@ -181,6 +190,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Persistence effects
   useEffect(() => storage.saveCafeProfile(cafeProfile), [cafeProfile]);
   useEffect(() => storage.saveMenuItems(menuItems), [menuItems]);
+  useEffect(() => storage.saveTables(tables), [tables]);
   useEffect(() => storage.saveBills(bills), [bills]);
   useEffect(() => storage.saveOrders(orders), [orders]);
   useEffect(() => storage.saveWaiterRequests(waiterRequests), [waiterRequests]);
@@ -367,6 +377,106 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     storage.saveMenuItems(updated);
     cloudSync.pushMenuItems(updated);
     toast.success('Generated unique AI photography for all dishes!', { icon: '✨' });
+  };
+
+  // Table Management
+  const addTable = (data: { name: string; section?: string; capacity?: number; shape?: 'square' | 'round' | 'rect' }) => {
+    const trimmedName = data.name.trim();
+    if (!trimmedName) {
+      toast.error('Table name cannot be empty');
+      throw new Error('Table name required');
+    }
+
+    const exists = tables.some((t) => t.name.toLowerCase() === trimmedName.toLowerCase());
+    if (exists) {
+      toast.error(`"${trimmedName}" already exists!`);
+      throw new Error('Table already exists');
+    }
+
+    const newTable: RestaurantTable = {
+      id: `tbl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: trimmedName,
+      section: data.section?.trim() || 'Main Hall',
+      capacity: Number(data.capacity) || 4,
+      shape: data.shape || 'square',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [...tables, newTable];
+    setTables(updated);
+    storage.saveTables(updated);
+    cloudSync.pushTables(updated);
+    toast.success(`Added ${newTable.name} (${newTable.section})!`, { icon: '🪑' });
+    return newTable;
+  };
+
+  const addMultipleTables = (count: number, section: string = 'Main Hall', prefix: string = 'Table') => {
+    if (count <= 0) return;
+
+    let highestNum = 0;
+    const numRegex = new RegExp(`^${prefix}\\s*(\\d+)$`, 'i');
+    tables.forEach((t) => {
+      const match = t.name.match(numRegex);
+      if (match) {
+        const n = parseInt(match[1], 10);
+        if (n > highestNum) highestNum = n;
+      }
+    });
+
+    const newTables: RestaurantTable[] = [];
+    for (let i = 1; i <= count; i++) {
+      const nextNum = highestNum + i;
+      newTables.push({
+        id: `tbl_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+        name: `${prefix} ${nextNum}`,
+        section: section.trim() || 'Main Hall',
+        capacity: 4,
+        shape: 'square',
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    const updated = [...tables, ...newTables];
+    setTables(updated);
+    storage.saveTables(updated);
+    cloudSync.pushTables(updated);
+    toast.success(`Added ${count} new tables (${prefix} ${highestNum + 1} to ${highestNum + count})!`, { icon: '🪑' });
+  };
+
+  const updateTable = (updatedTable: RestaurantTable) => {
+    const updated = tables.map((t) => (t.id === updatedTable.id ? updatedTable : t));
+    setTables(updated);
+    storage.saveTables(updated);
+    cloudSync.pushTables(updated);
+    toast.success(`Updated ${updatedTable.name}!`, { icon: '✅' });
+  };
+
+  const deleteTable = (id: string) => {
+    const target = tables.find((t) => t.id === id);
+    if (!target) return;
+
+    const hasActiveOrders = orders.some(
+      (o) => o.tableNumber.toLowerCase() === target.name.toLowerCase() && o.status !== 'served' && o.status !== 'cancelled'
+    );
+    if (hasActiveOrders) {
+      toast.error(`Cannot delete ${target.name} while it has an active order cooking or dining!`);
+      return;
+    }
+
+    const updated = tables.filter((t) => t.id !== id);
+    setTables(updated);
+    storage.saveTables(updated);
+    cloudSync.pushTables(updated);
+    toast.info(`Removed ${target.name}`, { icon: '🗑️' });
+  };
+
+  const resetTablesToDefault = () => {
+    setTables(DEFAULT_TABLES);
+    storage.saveTables(DEFAULT_TABLES);
+    cloudSync.pushTables(DEFAULT_TABLES);
+    toast.success('Reset tables to default layout');
   };
 
   // Cart Management
@@ -673,6 +783,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         toggleItemAvailability,
         regenerateDishImage,
         regenerateAllDishImages,
+        tables,
+        addTable,
+        addMultipleTables,
+        updateTable,
+        deleteTable,
+        resetTablesToDefault,
         cart,
         addToCart,
         removeFromCart,

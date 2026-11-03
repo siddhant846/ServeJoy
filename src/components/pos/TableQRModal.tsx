@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, QrCode, Printer, Wifi, Edit2, Check } from 'lucide-react';
+import { AddTableModal } from './AddTableModal';
+import { X, QrCode, Printer, Wifi, Edit2, Check, Plus, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TableQRModalProps {
@@ -9,14 +10,18 @@ interface TableQRModalProps {
 }
 
 export const TableQRModal: React.FC<TableQRModalProps> = ({ isOpen, onClose }) => {
-  const { cafeProfile, networkHost, setNetworkHost } = useApp();
-  const [selectedTable, setSelectedTable] = useState<string>('Table 1');
+  const { cafeProfile, networkHost, setNetworkHost, tables } = useApp();
+  const [selectedTable, setSelectedTable] = useState<string>(() => tables[0]?.name || 'Table 1');
   const [isEditingHost, setIsEditingHost] = useState<boolean>(false);
   const [tempHost, setTempHost] = useState<string>(networkHost);
+  const [isAddTableOpen, setIsAddTableOpen] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
-  const tables = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Takeaway'];
+  const tableList = tables.map((t) => t.name);
+  if (!tableList.includes(selectedTable) && tableList.length > 0) {
+    setSelectedTable(tableList[0]);
+  }
 
   const customerMenuUrl = `${networkHost}/menu/${cafeProfile.id}?table=${encodeURIComponent(selectedTable)}`;
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(customerMenuUrl)}`;
@@ -99,7 +104,97 @@ export const TableQRModal: React.FC<TableQRModalProps> = ({ isOpen, onClose }) =
     printWindow.focus();
     setTimeout(() => {
       printWindow.print();
-    }, 300);
+    }, 500);
+  };
+
+  const handlePrintAllStandees = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Pop-up blocked. Please allow pop-ups to print standees.');
+      return;
+    }
+
+    const pagesHtml = tables.map((t) => {
+      const url = `${networkHost}/menu/${cafeProfile.id}?table=${encodeURIComponent(t.name)}`;
+      const qr = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
+      return `
+        <div class="standee-page">
+          <div class="title">${cafeProfile.name}</div>
+          <div class="tagline">${cafeProfile.tagLine}</div>
+          <div class="table-badge">${t.name.toUpperCase()} (${t.section})</div>
+          <br />
+          <div class="qr-box">
+            <img class="qr-img" src="${qr}" alt="Scan QR" />
+          </div>
+          <div class="instructions">📱 Scan with Phone Camera to Order</div>
+          <div class="subtext">Browse Menu • Customise Dishes • Call Waiter</div>
+          <div class="subtext" style="margin-top: 4px; font-weight: 600; color: #ea580c;">No App Download Needed</div>
+          <div class="footer">Powered by ServeJoy Contactless Dining</div>
+        </div>
+      `;
+    }).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>All Table Standees (${tables.length}) - ${cafeProfile.name}</title>
+          <style>
+            @page { size: A6 portrait; margin: 10mm; }
+            body {
+              font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+              margin: 0;
+              padding: 0;
+              background: #fff;
+            }
+            .standee-page {
+              page-break-after: always;
+              text-align: center;
+              padding: 15px;
+              color: #1a1a1a;
+              border: 3px solid #f97316;
+              border-radius: 20px;
+              margin-bottom: 20px;
+            }
+            .title { font-size: 24px; font-weight: 800; color: #3a1e12; margin-top: 5px; }
+            .tagline { font-size: 11px; color: #666; margin-bottom: 12px; }
+            .table-badge {
+              display: inline-block;
+              background: #fff7ed;
+              color: #c2410c;
+              border: 1.5px solid #fed7aa;
+              font-size: 14px;
+              font-weight: 800;
+              padding: 4px 16px;
+              border-radius: 30px;
+              margin-bottom: 12px;
+            }
+            .qr-box {
+              display: inline-block;
+              background: #fff;
+              padding: 10px;
+              border: 1px solid #e5e7eb;
+              border-radius: 16px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            }
+            .qr-img { width: 180px; height: 180px; display: block; border-radius: 8px; }
+            .instructions { font-size: 13px; font-weight: 700; color: #1f2937; margin-top: 14px; }
+            .subtext { font-size: 10px; color: #6b7280; margin-top: 2px; }
+            .footer { margin-top: 15px; font-size: 9px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 8px; }
+          </style>
+        </head>
+        <body>
+          ${pagesHtml}
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 700);
   };
 
   return (
@@ -126,11 +221,21 @@ export const TableQRModal: React.FC<TableQRModalProps> = ({ isOpen, onClose }) =
 
         {/* Table Selector */}
         <div className="mt-3">
-          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-            Choose Table
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+              Choose Table ({tables.length} Total)
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsAddTableOpen(true)}
+              className="flex items-center gap-1 text-[11px] font-bold text-accent hover:underline"
+            >
+              <Plus className="h-3 w-3" />
+              <span>Add Table</span>
+            </button>
+          </div>
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            {tables.map((t) => (
+            {tableList.map((t) => (
               <button
                 key={t}
                 onClick={() => setSelectedTable(t)}
@@ -143,6 +248,14 @@ export const TableQRModal: React.FC<TableQRModalProps> = ({ isOpen, onClose }) =
                 {t}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setIsAddTableOpen(true)}
+              className="shrink-0 flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold border border-dashed border-accent/60 text-accent hover:bg-accent/10 transition"
+            >
+              <Plus className="h-3 w-3" />
+              <span>Add More</span>
+            </button>
           </div>
         </div>
 
@@ -213,15 +326,30 @@ export const TableQRModal: React.FC<TableQRModalProps> = ({ isOpen, onClose }) =
           )}
         </div>
 
-        {/* Action Button */}
-        <button
-          onClick={handlePrintStandee}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-2.5 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition"
-        >
-          <Printer className="h-4 w-4" />
-          <span>Print A6 Acrylic Standee</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            onClick={handlePrintStandee}
+            className="flex items-center justify-center gap-1.5 rounded-2xl bg-accent py-2.5 px-3 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition"
+          >
+            <Printer className="h-4 w-4" />
+            <span>Print {selectedTable} Standee</span>
+          </button>
+
+          <button
+            onClick={handlePrintAllStandees}
+            className="flex items-center justify-center gap-1.5 rounded-2xl border border-accent/40 bg-accent/10 py-2.5 px-3 text-xs font-bold text-accent hover:bg-accent/20 transition"
+          >
+            <Layers className="h-4 w-4" />
+            <span>Print All ({tables.length} Tables)</span>
+          </button>
+        </div>
       </div>
+
+      <AddTableModal
+        isOpen={isAddTableOpen}
+        onClose={() => setIsAddTableOpen(false)}
+      />
     </div>
   );
 };

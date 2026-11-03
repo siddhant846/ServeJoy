@@ -1,4 +1,4 @@
-import { Order, WaiterRequest, Bill, CloudSyncStatus, MenuItem } from '../types';
+import { Order, WaiterRequest, Bill, CloudSyncStatus, MenuItem, RestaurantTable } from '../types';
 import { storage } from './storage';
 
 const FIREBASE_PROJECT = 'servejoy-pos-live';
@@ -186,6 +186,51 @@ class CloudSyncEngine {
       }
     } catch (err: any) {
       console.warn('[CloudSync] pullMenuItems error:', err);
+    }
+    return null;
+  }
+
+  async pushTables(tables: RestaurantTable[], businessId?: string): Promise<boolean> {
+    if (!this.status.isOnline) return false;
+    try {
+      const bizId = businessId || storage.getActiveBusinessId();
+      const collection = this.getCollectionName('tables', bizId);
+      const url = `${FIRESTORE_BASE}/${collection}/active_tables?key=${FIREBASE_KEY}`;
+      const doc = this.makeDocument('active_tables', { tables, businessId: bizId }, 'tables');
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc),
+      });
+      if (res.ok) {
+        this.status.lastSyncedAt = new Date();
+        this.notifyListeners();
+        return true;
+      }
+    } catch (err: any) {
+      console.warn('[CloudSync] pushTables error:', err);
+    }
+    return false;
+  }
+
+  async pullTables(businessId?: string): Promise<RestaurantTable[] | null> {
+    try {
+      const bizId = businessId || storage.getActiveBusinessId();
+      const collection = this.getCollectionName('tables', bizId);
+      const url = `${FIRESTORE_BASE}/${collection}/active_tables?key=${FIREBASE_KEY}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const payloadStr = data.fields?.payload?.stringValue;
+        if (payloadStr) {
+          const parsed = JSON.parse(payloadStr);
+          if (Array.isArray(parsed.tables)) {
+            return parsed.tables;
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[CloudSync] pullTables error:', err);
     }
     return null;
   }
