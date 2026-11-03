@@ -172,6 +172,20 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
     toast.info('Item removed');
   };
 
+  // Regenerate a single detected dish image with unique seed
+  const regenerateDetectedItemImage = (index: number) => {
+    setDetectedItems((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item;
+        return {
+          ...item,
+          imageUrl: matchLocalDishImage(item.name, item.category, Date.now() + Math.random()),
+        };
+      })
+    );
+    toast.success('Generated fresh AI photography variation!', { icon: '✨' });
+  };
+
   // Add another empty item to detected list
   const handleAddNewItem = () => {
     const newItem: ParsedMenuItem = {
@@ -461,7 +475,7 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
                       </button>
 
                       {/* Dish Image */}
-                      <div className="h-11 w-11 rounded-xl overflow-hidden border border-border bg-secondary shrink-0 relative">
+                      <div className="h-11 w-11 rounded-xl overflow-hidden border border-border bg-secondary shrink-0 relative group/img">
                         <img
                           src={item.imageUrl || matchLocalDishImage(item.name, item.category)}
                           alt={item.name}
@@ -470,6 +484,17 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
                             (e.target as HTMLImageElement).src = '/dishes/pav_bhaji.jpg';
                           }}
                         />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            regenerateDetectedItemImage(idx);
+                          }}
+                          title="Generate new AI image variation"
+                          className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition"
+                        >
+                          <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                        </button>
                         <span className="absolute bottom-0 right-0 text-[9px] bg-black/60 px-1 rounded-tl text-white">
                           {item.emoji || '🍲'}
                         </span>

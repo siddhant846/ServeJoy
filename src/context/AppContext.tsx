@@ -33,6 +33,8 @@ interface AppContextType {
   updateMenuItem: (item: MenuItem) => void;
   deleteMenuItem: (id: string) => void;
   toggleItemAvailability: (id: string) => void;
+  regenerateDishImage: (itemId: string) => void;
+  regenerateAllDishImages: () => void;
 
   cart: CartItem[];
   addToCart: (item: MenuItem) => void;
@@ -219,6 +221,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, []);
 
+  // Auto-upgrade existing menu items that have generic mismatched images (like grilled_sandwich.jpg on chicken popcorn or momos)
+  useEffect(() => {
+    setMenuItems((prev) => {
+      let changed = false;
+      const updated = prev.map((item) => {
+        const lowerName = item.name.toLowerCase();
+        // Check if item has grilled_sandwich.jpg but is NOT a sandwich or toast
+        const isMismatchedSandwich =
+          item.imageUrl === '/dishes/grilled_sandwich.jpg' &&
+          !lowerName.includes('sandwich') &&
+          !lowerName.includes('toast') &&
+          !lowerName.includes('panini');
+
+        // Check if chicken maggi has plain_maggi
+        const isMismatchedMaggi =
+          item.imageUrl === '/dishes/plain_maggi.jpg' &&
+          lowerName.includes('chicken');
+
+        if (isMismatchedSandwich || isMismatchedMaggi || !item.imageUrl) {
+          changed = true;
+          return {
+            ...item,
+            imageUrl: matchLocalDishImage(item.name, item.category),
+          };
+        }
+        return item;
+      });
+
+      if (changed) {
+        storage.saveMenuItems(updated);
+        return updated;
+      }
+      return prev;
+    });
+  }, []);
+
   const syncAll = async () => {
     await cloudSync.syncAll();
     toast.success('Live cloud sync completed!', { icon: '☁️' });
@@ -278,6 +316,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setMenuItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, isAvailable: !i.isAvailable } : i))
     );
+  };
+
+  const regenerateDishImage = (itemId: string) => {
+    const target = menuItems.find((i) => i.id === itemId);
+    if (!target) return;
+    const newImage = matchLocalDishImage(target.name, target.category, Date.now());
+    const updated = menuItems.map((i) => (i.id === itemId ? { ...i, imageUrl: newImage } : i));
+    setMenuItems(updated);
+    storage.saveMenuItems(updated);
+    toast.success(`Generated unique AI photography for ${target.name}!`, { icon: '✨' });
+  };
+
+  const regenerateAllDishImages = () => {
+    const updated = menuItems.map((item, idx) => ({
+      ...item,
+      imageUrl: matchLocalDishImage(item.name, item.category, Date.now() + idx * 7),
+    }));
+    setMenuItems(updated);
+    storage.saveMenuItems(updated);
+    toast.success('Generated unique AI photography for all dishes!', { icon: '✨' });
   };
 
   // Cart Management
@@ -582,6 +640,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateMenuItem,
         deleteMenuItem,
         toggleItemAvailability,
+        regenerateDishImage,
+        regenerateAllDishImages,
         cart,
         addToCart,
         removeFromCart,

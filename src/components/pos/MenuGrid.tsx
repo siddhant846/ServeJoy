@@ -18,7 +18,7 @@ interface FlyingItem {
 }
 
 export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
-  const { menuItems, cart, addToCart, updateCartQuantity, cafeProfile } = useApp();
+  const { menuItems, cart, addToCart, updateCartQuantity, cafeProfile, regenerateDishImage, regenerateAllDishImages } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [flyingItems, setFlyingItems] = useState<FlyingItem[]>([]);
@@ -98,14 +98,26 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
           />
         </div>
 
-        <button
-          onClick={onOpenAiDishModal}
-          title="Scan physical printed menu photo with Google Gemini Vision AI"
-          className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:opacity-95 transition active:scale-95 shrink-0"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>AI Scan Menu</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={regenerateAllDishImages}
+            title="Regenerate unique bespoke AI photography for all dishes"
+            className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-bold text-foreground hover:bg-secondary hover:text-accent transition active:scale-95 shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
+            <span className="hidden sm:inline">Regenerate AI Photos</span>
+            <span className="sm:hidden">AI Photos</span>
+          </button>
+
+          <button
+            onClick={onOpenAiDishModal}
+            title="Scan physical printed menu photo with OCR and AI photography"
+            className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:opacity-95 transition active:scale-95"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>AI Scan Menu</span>
+          </button>
+        </div>
       </div>
 
       {/* Category Pills */}
@@ -166,6 +178,17 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
                 <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
                   {item.category}
                 </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    regenerateDishImage(item.id);
+                  }}
+                  title="Regenerate unique AI photography for this dish"
+                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white/90 hover:text-white hover:bg-black/90 backdrop-blur-sm transition active:scale-90 opacity-80 hover:opacity-100"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                </button>
                 {!item.isAvailable && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
                     <span className="rounded-full bg-red-600/90 px-3 py-1 text-xs font-extrabold text-white">
