@@ -17,6 +17,12 @@ import {
   Settings,
   ArrowRight,
   RotateCcw,
+  Trash2,
+  Plus,
+  Eye,
+  CheckSquare,
+  Square,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,8 +39,11 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
 
   // Scanner States
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [scanProgress, setScanProgress] = useState<number>(0);
+  const [scanStatusText, setScanStatusText] = useState<string>('');
   const [detectedItems, setDetectedItems] = useState<ParsedMenuItem[]>([]);
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
+  const [showPhotoPreviewModal, setShowPhotoPreviewModal] = useState<boolean>(false);
   const [rawPastedText, setRawPastedText] = useState<string>('');
 
   // API Key Setting
@@ -54,7 +63,7 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
 
   if (!isOpen) return null;
 
-  // Handle Photo Selection via input
+  // Handle Photo Selection via file input
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,52 +77,128 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
     reader.readAsDataURL(file);
   };
 
-  // Run Vision AI Parser
+  // Run Real Vision OCR / Gemini Parser
   const runVisionDigitizer = async (base64: string) => {
     setIsScanning(true);
+    setScanProgress(10);
+    setScanStatusText('Enhancing menu photo clarity & orientation...');
+
     try {
-      const items = await digitizeMenuFromPhoto(base64, geminiApiKey);
-      setDetectedItems(items);
-      toast.success(`Google Gemini Vision detected ${items.length} dishes!`, { icon: '✨' });
+      const items = await digitizeMenuFromPhoto(base64, geminiApiKey, (pct) => {
+        setScanProgress(pct);
+        if (pct < 30) {
+          setScanStatusText('Preparing high-contrast image...');
+        } else if (pct < 85) {
+          setScanStatusText(`Reading printed menu with Optical Character Recognition (${pct}%)...`);
+        } else if (pct < 100) {
+          setScanStatusText('Extracting dishes, prices & categorizing items...');
+        } else {
+          setScanStatusText('Matching culinary photography...');
+        }
+      });
+
+      if (!items || items.length === 0) {
+        toast.error('No readable dishes or prices found. Please ensure the menu card is clear and well-lit.');
+      } else {
+        setDetectedItems(items);
+        toast.success(`Extracted ${items.length} items directly from your menu photo!`, { icon: '✨' });
+      }
     } catch (err: any) {
-      toast.error('Vision analysis notice: loaded standard menu format.');
-      setDetectedItems(SAMPLE_DIGITIZED_MENU);
+      toast.error(err.message || 'Could not parse menu photo. Try a clearer picture or paste menu text.');
+      setDetectedItems([]);
     } finally {
       setIsScanning(false);
+      setScanProgress(0);
+      setScanStatusText('');
     }
   };
 
-  // Run Sample Menu
+  // Run Sample Menu demonstration
   const handleLoadSampleMenu = () => {
     setIsScanning(true);
+    setScanProgress(50);
+    setScanStatusText('Loading sample café menu demo...');
     setTimeout(() => {
       setDetectedItems(SAMPLE_DIGITIZED_MENU);
       setIsScanning(false);
-      toast.success('Loaded sample café menu with AI dish photography!', { icon: '🍲' });
-    }, 700);
+      setScanProgress(0);
+      setScanStatusText('');
+      toast.success('Loaded sample café menu with AI photography!', { icon: '🍲' });
+    }, 400);
   };
 
   // Run Text Menu Digitize
-  const handleDigitizeText = async () => {
+  const handleDigitizeText = () => {
     if (!rawPastedText.trim()) {
       toast.error('Please paste your menu text first');
       return;
     }
     setIsScanning(true);
     try {
-      const items = await digitizeMenuFromText(rawPastedText, geminiApiKey);
-      setDetectedItems(items);
-      toast.success(`Extracted ${items.length} items from text!`, { icon: '📋' });
+      const items = digitizeMenuFromText(rawPastedText);
+      if (items.length === 0) {
+        toast.error('No dishes or prices found in the text. Format example: "Pav Bhaji 120"');
+      } else {
+        setDetectedItems(items);
+        toast.success(`Extracted ${items.length} items from text!`, { icon: '📋' });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to parse text.');
     } finally {
       setIsScanning(false);
     }
   };
 
-  // Toggle item selection
+  // Update detected item field inline
+  const updateDetectedItem = (index: number, field: keyof ParsedMenuItem, value: any) => {
+    setDetectedItems((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item;
+        const updated = { ...item, [field]: value };
+        if (field === 'name') {
+          updated.imageUrl = matchLocalDishImage(value, updated.category);
+        } else if (field === 'price') {
+          const numPrice = parseFloat(value) || 0;
+          updated.cost = Math.round(numPrice * 0.4);
+        }
+        return updated;
+      })
+    );
+  };
+
+  // Delete a detected item
+  const removeDetectedItem = (index: number) => {
+    setDetectedItems((prev) => prev.filter((_, idx) => idx !== index));
+    toast.info('Item removed');
+  };
+
+  // Add another empty item to detected list
+  const handleAddNewItem = () => {
+    const newItem: ParsedMenuItem = {
+      name: 'New Cafe Dish',
+      category: 'Snacks',
+      price: 100,
+      cost: 40,
+      description: "Chef's special freshly prepared authentic dish, served hot and fresh.",
+      emoji: '🍲',
+      imageUrl: '/dishes/grilled_sandwich.jpg',
+      selected: true,
+    };
+    setDetectedItems((prev) => [...prev, newItem]);
+    toast.success('Added new item. Edit the name and price below.');
+  };
+
+  // Toggle single item selection
   const toggleItemSelection = (index: number) => {
     setDetectedItems((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, selected: !item.selected } : item))
     );
+  };
+
+  // Toggle all items selection
+  const toggleSelectAll = () => {
+    const allSelected = detectedItems.every((i) => i.selected !== false);
+    setDetectedItems((prev) => prev.map((item) => ({ ...item, selected: !allSelected })));
   };
 
   // Insert all selected into cafe menu
@@ -125,11 +210,11 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
     }
 
     const payload = selected.map((d) => ({
-      name: d.name,
+      name: d.name.trim(),
       category: d.category,
-      price: d.price,
-      cost: d.cost || Math.round(d.price * 0.4),
-      description: d.description,
+      price: Number(d.price) || 100,
+      cost: Number(d.cost) || Math.round((Number(d.price) || 100) * 0.4),
+      description: d.description || `Chef's special freshly prepared ${d.name}.`,
       emoji: d.emoji || '🍽️',
       imageUrl: d.imageUrl || matchLocalDishImage(d.name, d.category),
       isAvailable: true,
@@ -168,10 +253,12 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
     onClose();
   };
 
+  const selectedCount = detectedItems.filter((i) => i.selected !== false).length;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 sm:p-5 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-xl rounded-[2.5rem] border border-border bg-card p-5 sm:p-7 shadow-elevated max-h-[92vh] flex flex-col overflow-hidden text-left">
-        {/* Top Header matching screenshot */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-2 sm:p-5 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-[2.5rem] border border-border bg-card p-4 sm:p-7 shadow-elevated max-h-[94vh] flex flex-col overflow-hidden text-left">
+        {/* Top Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border/80">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md">
@@ -195,12 +282,12 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
           </button>
         </div>
 
-        {/* Top Tabs */}
+        {/* Top Navigation Tabs */}
         {detectedItems.length === 0 && !isScanning && (
-          <div className="flex items-center border-b border-border/80 text-xs font-bold pt-3">
+          <div className="flex items-center border-b border-border/80 text-xs font-bold pt-3 overflow-x-auto">
             <button
               onClick={() => setActiveTab('photo')}
-              className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition ${
+              className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'photo'
                   ? 'border-accent text-accent'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -212,7 +299,7 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
 
             <button
               onClick={() => setActiveTab('text')}
-              className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition ${
+              className={`flex items-center gap-2 pb-3 px-4 border-b-2 transition whitespace-nowrap ${
                 activeTab === 'text'
                   ? 'border-accent text-accent'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -224,7 +311,7 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
 
             <button
               onClick={() => setActiveTab('manual')}
-              className={`flex items-center gap-1.5 pb-3 px-4 border-b-2 transition ml-auto ${
+              className={`flex items-center gap-1.5 pb-3 px-4 border-b-2 transition ml-auto whitespace-nowrap ${
                 activeTab === 'manual'
                   ? 'border-accent text-accent'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -239,105 +326,207 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
         <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
           {/* STATE 1: SCANNING IN PROGRESS */}
           {isScanning && (
-            <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="py-12 flex flex-col items-center justify-center text-center space-y-5">
               <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-500/15 border border-amber-500/30 text-accent">
                 <Loader2 className="h-10 w-10 animate-spin text-accent" />
                 <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-amber-500 animate-pulse" />
               </div>
-              <div>
+              <div className="w-full max-w-sm space-y-3">
                 <h3 className="font-display text-base font-bold text-foreground">
-                  Analyzing Menu with Gemini 1.5 Flash Vision...
+                  Scanning Your Menu Card...
                 </h3>
-                <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                  Extracting dish names, categories, pricing, and generating mouth-watering culinary photography.
+                <p className="text-xs text-muted-foreground">
+                  {scanStatusText || 'Extracting dishes, prices and generating food photography...'}
                 </p>
+
+                {/* Live Progress Bar */}
+                {scanProgress > 0 && (
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex justify-between text-[11px] font-bold">
+                      <span className="text-muted-foreground">OCR Progress</span>
+                      <span className="text-accent">{scanProgress}%</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-500 to-orange-600 rounded-full transition-all duration-300"
+                        style={{ width: `${scanProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* STATE 2: DETECTED ITEMS REVIEW */}
+          {/* STATE 2: DETECTED ITEMS REVIEW & EDIT */}
           {!isScanning && detectedItems.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              {/* Header with stats and actions */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
                 <div>
                   <h3 className="font-display text-sm font-bold text-foreground flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     <span>{detectedItems.length} Dishes Detected</span>
                   </h3>
                   <p className="text-[11px] text-muted-foreground">
-                    Review and select which items to import into your menu with AI photography
+                    Review and edit names or prices before importing into your menu
                   </p>
                 </div>
 
+                <div className="flex items-center gap-2">
+                  {selectedPhotoPreview && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoPreviewModal(!showPhotoPreviewModal)}
+                      className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-[11px] font-bold text-foreground hover:bg-secondary/80 transition"
+                    >
+                      <Eye className="h-3 w-3 text-accent" />
+                      <span>{showPhotoPreviewModal ? 'Hide Menu Card' : 'View Menu Card'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetectedItems([]);
+                      setSelectedPhotoPreview(null);
+                    }}
+                    className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-[11px] font-bold text-muted-foreground hover:text-foreground transition"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Scan Another</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Uploaded Menu Photo Preview Dropdown */}
+              {showPhotoPreviewModal && selectedPhotoPreview && (
+                <div className="p-2 border border-border rounded-2xl bg-secondary/30 flex justify-center animate-fade-in">
+                  <img
+                    src={selectedPhotoPreview}
+                    alt="Original Menu Card"
+                    className="max-h-56 object-contain rounded-xl border border-border"
+                  />
+                </div>
+              )}
+
+              {/* Select All & Add Dish Row */}
+              <div className="flex items-center justify-between px-1 text-xs">
                 <button
                   type="button"
-                  onClick={() => {
-                    setDetectedItems([]);
-                    setSelectedPhotoPreview(null);
-                  }}
-                  className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-[11px] font-bold text-muted-foreground hover:text-foreground transition"
+                  onClick={toggleSelectAll}
+                  className="flex items-center gap-1.5 font-bold text-accent hover:underline"
                 >
-                  <RotateCcw className="h-3 w-3" />
-                  <span>Scan Another</span>
+                  {selectedCount === detectedItems.length ? (
+                    <CheckSquare className="h-4 w-4 text-accent" />
+                  ) : (
+                    <Square className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span>
+                    {selectedCount === detectedItems.length ? 'Deselect All' : 'Select All'} ({selectedCount}/{detectedItems.length})
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAddNewItem}
+                  className="flex items-center gap-1 font-bold text-xs text-accent hover:text-accent/80 transition"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>+ Add Another Dish</span>
                 </button>
               </div>
 
-              {/* Items List */}
-              <div className="divide-y divide-border/80 border border-border rounded-2xl overflow-hidden bg-secondary/30 max-h-80 overflow-y-auto">
+              {/* Items List with Inline Editing */}
+              <div className="divide-y divide-border/80 border border-border rounded-2xl overflow-hidden bg-secondary/20 max-h-96 overflow-y-auto">
                 {detectedItems.map((item, idx) => (
                   <div
                     key={idx}
-                    onClick={() => toggleItemSelection(idx)}
-                    className={`flex items-center gap-3 p-3 transition cursor-pointer ${
+                    className={`flex flex-col sm:flex-row sm:items-center gap-2.5 p-3 transition ${
                       item.selected !== false ? 'bg-card' : 'bg-secondary/40 opacity-50'
                     }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={item.selected !== false}
-                      onChange={() => toggleItemSelection(idx)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 rounded text-accent focus:ring-accent"
-                    />
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      {/* Checkbox */}
+                      <button
+                        type="button"
+                        onClick={() => toggleItemSelection(idx)}
+                        className="text-accent shrink-0 p-1"
+                      >
+                        {item.selected !== false ? (
+                          <CheckSquare className="h-4 w-4 text-accent" />
+                        ) : (
+                          <Square className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
 
-                    {/* Dish AI Image */}
-                    <div className="h-12 w-12 rounded-xl overflow-hidden border border-border bg-secondary shrink-0 relative">
-                      <img
-                        src={item.imageUrl || matchLocalDishImage(item.name, item.category)}
-                        alt={item.name}
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/dishes/pav_bhaji.jpg';
-                        }}
-                      />
-                      <span className="absolute bottom-0 right-0 text-[10px] bg-black/60 px-1 rounded-tl text-white">
-                        {item.emoji || '🍲'}
-                      </span>
-                    </div>
-
-                    {/* Dish Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-display text-xs font-bold text-foreground truncate">
-                          {item.name}
-                        </p>
-                        <span className="rounded-full bg-secondary px-2 py-0.2 text-[9px] font-bold text-muted-foreground">
-                          {item.category}
+                      {/* Dish Image */}
+                      <div className="h-11 w-11 rounded-xl overflow-hidden border border-border bg-secondary shrink-0 relative">
+                        <img
+                          src={item.imageUrl || matchLocalDishImage(item.name, item.category)}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/dishes/pav_bhaji.jpg';
+                          }}
+                        />
+                        <span className="absolute bottom-0 right-0 text-[9px] bg-black/60 px-1 rounded-tl text-white">
+                          {item.emoji || '🍲'}
                         </span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
-                        {item.description}
-                      </p>
+
+                      {/* Editable Dish Name Input */}
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => updateDetectedItem(idx, 'name', e.target.value)}
+                          placeholder="Dish Name"
+                          className="w-full rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                        />
+                        <p className="text-[10px] text-muted-foreground truncate px-0.5 mt-0.5">
+                          {item.description}
+                        </p>
+                      </div>
                     </div>
 
-                    {/* Price */}
-                    <div className="text-right shrink-0">
-                      <p className="font-receipt font-bold text-foreground text-sm">
-                        {cafeProfile.currency}{item.price}
-                      </p>
-                      <span className="text-[9px] text-emerald-600 font-semibold">
-                        Cost: {cafeProfile.currency}{item.cost || Math.round(item.price * 0.4)}
-                      </span>
+                    {/* Category, Price & Delete */}
+                    <div className="flex items-center gap-2 self-end sm:self-auto pl-8 sm:pl-0">
+                      {/* Category Selector */}
+                      <select
+                        value={item.category}
+                        onChange={(e) => updateDetectedItem(idx, 'category', e.target.value)}
+                        className="rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                      >
+                        <option value="Beverages">Beverages</option>
+                        <option value="Snacks">Snacks</option>
+                        <option value="Meals">Meals</option>
+                        <option value="Desserts">Desserts</option>
+                        <option value="Combos">Combos</option>
+                      </select>
+
+                      {/* Price Input */}
+                      <div className="flex items-center rounded-lg border border-border bg-background px-2 py-0.5 w-24">
+                        <span className="text-xs font-bold text-muted-foreground mr-1">
+                          {cafeProfile.currency}
+                        </span>
+                        <input
+                          type="number"
+                          value={item.price}
+                          onChange={(e) => updateDetectedItem(idx, 'price', e.target.value)}
+                          className="w-full bg-transparent text-xs font-bold text-foreground focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Delete Button */}
+                      <button
+                        type="button"
+                        onClick={() => removeDetectedItem(idx)}
+                        className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-red-500/10 transition shrink-0"
+                        title="Remove dish"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -347,15 +536,16 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
               <button
                 type="button"
                 onClick={handleInsertAllDishes}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-accent py-3.5 px-4 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-98"
+                disabled={selectedCount === 0}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-accent py-3.5 px-4 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>Insert All {detectedItems.filter((i) => i.selected !== false).length} Dishes into Menu</span>
+                <span>Insert {selectedCount} Selected Dishes into Menu</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           )}
 
-          {/* STATE 3: UPLOAD MENU PHOTO (Matching screenshot) */}
+          {/* STATE 3: UPLOAD MENU PHOTO */}
           {!isScanning && detectedItems.length === 0 && activeTab === 'photo' && (
             <div className="space-y-4">
               {/* Dashed Upload Card */}
@@ -401,7 +591,7 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
                     className="w-full flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-secondary py-3 px-4 text-xs font-bold text-foreground hover:bg-secondary/80 transition active:scale-98"
                   >
                     <Sparkles className="h-4 w-4 text-accent" />
-                    <span>Sample Menu</span>
+                    <span>Sample Menu Demo</span>
                   </button>
                 </div>
               </div>
@@ -428,7 +618,7 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
                 className="w-full flex items-center justify-center gap-2 rounded-2xl bg-accent py-3 px-4 text-xs font-bold text-white shadow hover:bg-accent/90 transition active:scale-98"
               >
                 <Sparkles className="h-4 w-4" />
-                <span>Parse Menu Text with AI Vision</span>
+                <span>Parse Menu Text</span>
               </button>
             </div>
           )}
@@ -464,7 +654,7 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-foreground block mb-1">Price (₹)</label>
+                  <label className="text-xs font-bold text-foreground block mb-1">Price ({cafeProfile.currency})</label>
                   <input
                     type="number"
                     value={manualPrice}
@@ -503,21 +693,21 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
             </form>
           )}
 
-          {/* Technology Banner matching screenshot */}
+          {/* Technology & OCR Engine Info Banner */}
           {!isScanning && (
-            <div className="rounded-2xl border border-border/80 bg-secondary/50 p-4 space-y-2">
+            <div className="rounded-2xl border border-border/80 bg-secondary/40 p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                   <Sparkles className="h-3.5 w-3.5 text-accent" />
-                  <span>Technology: Google Gemini 1.5 Flash Vision AI</span>
+                  <span>Optical Character Recognition (OCR) Engine</span>
                 </div>
-                <span className="rounded-full bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 text-[9px] font-bold text-accent uppercase">
-                  Cloud Vision 100%
+                <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-bold text-emerald-600 uppercase">
+                  Client-Side Active
                 </span>
               </div>
 
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Connected to Google Gemini Multimodal Vision Model. Menus, columns, handwritten boards, and cursive fonts are parsed automatically with near-100% accuracy.
+                Photos are analyzed directly on your device using computer vision OCR to extract exact dish names and prices. You can also connect a Gemini API key for handwritten menus.
               </p>
 
               <div>
@@ -527,14 +717,25 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
                   className="text-[11px] font-semibold text-accent hover:underline flex items-center gap-1"
                 >
                   <Settings className="h-3 w-3" />
-                  <span>Gemini Vision AI Active (Click to edit or change key)</span>
+                  <span>Optional: Configure Google Gemini API Key</span>
                 </button>
 
                 {showKeySetting && (
                   <div className="mt-2.5 p-3 rounded-xl bg-card border border-border space-y-2 animate-fade-in">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">
-                      Custom Google Gemini API Key (Optional)
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase">
+                        Google Gemini API Key
+                      </label>
+                      <a
+                        href="https://aistudio.google.com/app/apikey"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-accent hover:underline flex items-center gap-0.5"
+                      >
+                        <span>Get Free Key</span>
+                        <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    </div>
                     <div className="flex gap-2">
                       <input
                         type="password"
@@ -546,13 +747,13 @@ export const AiDishModal: React.FC<AiDishModalProps> = ({ isOpen, onClose }) => 
                       <button
                         type="button"
                         onClick={handleSaveApiKey}
-                        className="rounded-xl bg-accent px-3 py-1.5 text-xs font-bold text-white"
+                        className="rounded-xl bg-accent px-3 py-1.5 text-xs font-bold text-white hover:bg-accent/90"
                       >
                         Save
                       </button>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Leave empty to use ServeJoy's built-in managed Vision cloud intelligence.
+                      When provided, Gemini 1.5 Flash Vision assists with cursive fonts and complex tables.
                     </p>
                   </div>
                 )}
