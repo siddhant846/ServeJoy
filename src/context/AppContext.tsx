@@ -236,6 +236,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         const lowerName = cleanName.toLowerCase();
         const hasPollinations = item.imageUrl?.includes('pollinations.ai');
+        const hasUnsplash = item.imageUrl?.includes('unsplash.com');
         const isMismatchedSandwich =
           item.imageUrl === '/dishes/grilled_sandwich.jpg' &&
           !lowerName.includes('sandwich') &&
@@ -245,7 +246,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           item.imageUrl === '/dishes/plain_maggi.jpg' &&
           lowerName.includes('chicken');
 
-        if (hasPollinations || isMismatchedSandwich || isMismatchedMaggi || !item.imageUrl || cleanName !== item.name) {
+        if (hasPollinations || hasUnsplash || isMismatchedSandwich || isMismatchedMaggi || !item.imageUrl || cleanName !== item.name) {
           changed = true;
           return {
             ...item,

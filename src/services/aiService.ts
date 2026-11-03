@@ -21,307 +21,102 @@ export const DISH_IMAGE_MAP: Record<string, string> = {
   item_plain_maggi: '/dishes/plain_maggi.jpg',
   item_veg_maggi: '/dishes/veg_maggi.jpg',
   item_vanilla_shake: '/dishes/vanilla_shake.jpg',
+  item_chicken_popcorn: '/dishes/chicken_popcorn.jpg',
+  item_chicken_strips: '/dishes/chicken_strips.jpg',
+  item_chicken_wings: '/dishes/chicken_wings.jpg',
+  item_veg_fried_momos: '/dishes/veg_fried_momos.jpg',
+  item_chicken_momos: '/dishes/chicken_momos.jpg',
+  item_peri_peri_fries: '/dishes/peri_peri_fries.jpg',
+  item_veg_burger: '/dishes/veg_burger.jpg',
+  item_veg_cheese_burger: '/dishes/veg_cheese_burger.jpg',
+  item_chicken_sandwich: '/dishes/chicken_sandwich.jpg',
+  item_chicken_maggi: '/dishes/chicken_maggi.jpg',
+  item_peri_peri_chicken: '/dishes/peri_peri_chicken.jpg',
 };
 
 /**
- * Curated High-Definition Commercial Culinary Photography Library
- * Fast, reliable, zero-rate-limits, 4K food photography for every cafe item type.
+ * Match a dish name to its dedicated high-resolution, luxurious dark-themed cafe photograph.
+ * Completely local, zero latency, zero rate-limits, and perfectly matched to ServeJoy's dark aesthetic!
  */
-const FOOD_PHOTOGRAPHY_REGISTRY: Record<string, string[]> = {
-  // Chicken Snacks & Finger Foods
-  chicken_popcorn: [
-    'https://images.unsplash.com/photo-1562967914-608f82629710?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&auto=format&fit=crop&q=80',
-  ],
-  chicken_strips: [
-    'https://images.unsplash.com/photo-1562967916-eb82221dfb92?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=600&auto=format&fit=crop&q=80',
-  ],
-  chicken_wings: [
-    'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=600&auto=format&fit=crop&q=80',
-  ],
-  chicken_nuggets: [
-    'https://images.unsplash.com/photo-1562967914-608f82629710?w=600&auto=format&fit=crop&q=80',
-  ],
-  chicken_tikka: [
-    'https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?w=600&auto=format&fit=crop&q=80',
-  ],
-  peri_peri_chicken: [
-    'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=600&auto=format&fit=crop&q=80',
-  ],
-
-  // Momos & Dumplings
-  veg_fried_momos: [
-    'https://images.unsplash.com/photo-1625398407796-82650a8c135f?w=600&auto=format&fit=crop&q=80',
-  ],
-  chicken_momos: [
-    'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=600&auto=format&fit=crop&q=80',
-  ],
-  steamed_momos: [
-    'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=600&auto=format&fit=crop&q=80',
-  ],
-  tandoori_momos: [
-    'https://images.unsplash.com/photo-1541544741938-0af808871cc0?w=600&auto=format&fit=crop&q=80',
-  ],
-
-  // Fries
-  peri_peri_fries: [
-    'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&auto=format&fit=crop&q=80',
-  ],
-  french_fries: [
-    'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=600&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=600&auto=format&fit=crop&q=80',
-  ],
-  cheese_fries: [
-    'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=600&auto=format&fit=crop&q=80',
-  ],
-
-  // Burgers
-  veg_burger: [
-    'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&auto=format&fit=crop&q=80',
-  ],
-  veg_cheese_burger: [
-    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80',
-  ],
-  chicken_burger: [
-    'https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=600&auto=format&fit=crop&q=80',
-  ],
-  paneer_burger: [
-    'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=600&auto=format&fit=crop&q=80',
-  ],
-
-  // Sandwiches
-  chicken_sandwich: [
-    'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80',
-  ],
-  cheese_sandwich: [
-    'https://images.unsplash.com/photo-1528736235302-52922df5c122?w=600&auto=format&fit=crop&q=80',
-  ],
-  paneer_sandwich: [
-    '/dishes/paneer_roll.jpg',
-  ],
-  veg_sandwich: [
-    '/dishes/grilled_sandwich.jpg',
-  ],
-
-  // Maggi & Noodles
-  chicken_maggi: [
-    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop&q=80',
-  ],
-  cheese_maggi: [
-    'https://images.unsplash.com/photo-1612927601601-6638404737ce?w=600&auto=format&fit=crop&q=80',
-  ],
-  veg_maggi: [
-    '/dishes/veg_maggi.jpg',
-  ],
-  masala_maggi: [
-    '/dishes/plain_maggi.jpg',
-  ],
-
-  // Pizza & Pasta
-  chicken_pizza: [
-    'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&auto=format&fit=crop&q=80',
-  ],
-  veg_pizza: [
-    'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=600&auto=format&fit=crop&q=80',
-  ],
-  paneer_pizza: [
-    'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop&q=80',
-  ],
-  red_pasta: [
-    'https://images.unsplash.com/photo-1621996346565-e3d5d6281691?w=600&auto=format&fit=crop&q=80',
-  ],
-  white_pasta: [
-    'https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=600&auto=format&fit=crop&q=80',
-  ],
-
-  // Beverages
-  cold_coffee: [
-    '/dishes/caramel_coffee.jpg',
-    'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=600&auto=format&fit=crop&q=80',
-  ],
-  hot_coffee: [
-    '/dishes/hot_coffee.jpg',
-    'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80',
-  ],
-  masala_chai: [
-    '/dishes/masala_chai.jpg',
-  ],
-  ginger_tea: [
-    '/dishes/ginger_tea.jpg',
-  ],
-  mojito: [
-    'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&auto=format&fit=crop&q=80',
-  ],
-  milkshake: [
-    'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&auto=format&fit=crop&q=80',
-    '/dishes/vanilla_shake.jpg',
-  ],
-
-  // Desserts
-  brownie: [
-    'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&auto=format&fit=crop&q=80',
-  ],
-  waffle: [
-    'https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=600&auto=format&fit=crop&q=80',
-  ],
-  ice_cream: [
-    'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=600&auto=format&fit=crop&q=80',
-  ],
-  gulab_jamun: [
-    '/dishes/gulab_jamun.jpg',
-  ],
-
-  // Meals & Rice
-  biryani: [
-    'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80',
-  ],
-  butter_chicken: [
-    'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=600&auto=format&fit=crop&q=80',
-  ],
-  paneer_curry: [
-    'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80',
-  ],
-  dal_baati: [
-    '/dishes/dal_baati.jpg',
-  ],
-  pav_bhaji: [
-    '/dishes/pav_bhaji.jpg',
-  ],
-  chole_puri: [
-    '/dishes/chole_puri.jpg',
-  ],
-};
-
-/**
- * Match a dish to a guaranteed high-res commercial culinary photograph.
- * Zero rate limits, instant CDN response, and distinct styling for every dish type.
- */
-export function matchLocalDishImage(dishName: string, category: string, salt: number = 0): string {
+export function matchLocalDishImage(dishName: string, category: string, _salt: number = 0): string {
   const name = dishName.toLowerCase().trim();
 
-  // Helper to pick from variations deterministically
-  const pick = (list: string[]) => {
-    if (!list || list.length === 0) return '/dishes/pav_bhaji.jpg';
-    const index = Math.abs(salt) % list.length;
-    return list[index];
-  };
+  // 1. CHICKEN APPETIZERS & FINGER FOODS
+  if (name.includes('popcorn')) return '/dishes/chicken_popcorn.jpg';
+  if (name.includes('strip') || name.includes('tender') || name.includes('finger')) return '/dishes/chicken_strips.jpg';
+  if (name.includes('wing')) return '/dishes/chicken_wings.jpg';
+  if (name.includes('peri') && name.includes('chicken')) return '/dishes/peri_peri_chicken.jpg';
 
-  // 1. Exact Local Photography Files
-  if (name.includes('pav') && name.includes('bhaji')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.pav_bhaji);
-  if (name.includes('dal') && (name.includes('baati') || name.includes('bati'))) return pick(FOOD_PHOTOGRAPHY_REGISTRY.dal_baati);
-  if (name.includes('chole') && (name.includes('puri') || name.includes('bhature'))) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chole_puri);
-  if (name.includes('dhokla') || name.includes('khaman')) return '/dishes/dhokla.jpg';
-  if (name.includes('bun maska') || (name.includes('bun') && name.includes('butter'))) return '/dishes/bun_maska.jpg';
-  if (name.includes('filter coffee') || name.includes('kaapi')) return '/dishes/filter_coffee.jpg';
-  if (name.includes('kulhad') && name.includes('coffee')) return '/dishes/kulhad_coffee.jpg';
-  if (name.includes('gulab jamun')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.gulab_jamun);
-
-  // 2. Chicken Snacks (Differentiated!)
-  if (name.includes('popcorn')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_popcorn);
-  if (name.includes('strip') || name.includes('tender') || name.includes('finger')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_strips);
-  if (name.includes('wing')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_wings);
-  if (name.includes('nugget')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_nuggets);
-  if (name.includes('tikka') && name.includes('chicken')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_tikka);
-  if (name.includes('peri') && name.includes('chicken')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.peri_peri_chicken);
-
-  // 3. Momos & Dumplings (Differentiated!)
+  // 2. MOMOS & DUMPLINGS
   if (name.includes('momo') || name.includes('dumpling') || name.includes('dim sum') || name.includes('dimsum')) {
     if (name.includes('fried') || name.includes('crispy') || name.includes('kurkure')) {
-      return pick(FOOD_PHOTOGRAPHY_REGISTRY.veg_fried_momos);
+      return '/dishes/veg_fried_momos.jpg';
     }
-    if (name.includes('tandoori')) {
-      return pick(FOOD_PHOTOGRAPHY_REGISTRY.tandoori_momos);
-    }
-    if (name.includes('chicken')) {
-      return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_momos);
-    }
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.steamed_momos);
+    return '/dishes/chicken_momos.jpg';
   }
 
-  // 4. Fries (Differentiated!)
-  if (name.includes('fries') || name.includes('french fries')) {
-    if (name.includes('peri') || name.includes('spicy') || name.includes('masala')) {
-      return pick(FOOD_PHOTOGRAPHY_REGISTRY.peri_peri_fries);
-    }
-    if (name.includes('cheese') || name.includes('loaded')) {
-      return pick(FOOD_PHOTOGRAPHY_REGISTRY.cheese_fries);
-    }
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.french_fries);
-  }
+  // 3. FRIES
+  if (name.includes('peri') && name.includes('fries')) return '/dishes/peri_peri_fries.jpg';
+  if (name.includes('fries') || name.includes('french fries')) return '/dishes/peri_peri_fries.jpg';
 
-  // 5. Burgers (Differentiated!)
+  // 4. BURGERS
   if (name.includes('burger')) {
-    if (name.includes('chicken')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_burger);
-    if (name.includes('paneer')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.paneer_burger);
-    if (name.includes('cheese')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.veg_cheese_burger);
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.veg_burger);
+    if (name.includes('cheese')) return '/dishes/veg_cheese_burger.jpg';
+    return '/dishes/veg_burger.jpg';
   }
 
-  // 6. Maggi & Noodles (Differentiated!)
+  // 5. MAGGI & NOODLES
   if (name.includes('maggi') || name.includes('noodle') || name.includes('chowmein')) {
-    if (name.includes('chicken')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_maggi);
-    if (name.includes('cheese')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.cheese_maggi);
-    if (name.includes('veg') || name.includes('vegetable')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.veg_maggi);
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.masala_maggi);
+    if (name.includes('chicken')) return '/dishes/chicken_maggi.jpg';
+    if (name.includes('veg') || name.includes('vegetable')) return '/dishes/veg_maggi.jpg';
+    return '/dishes/plain_maggi.jpg';
   }
 
-  // 7. Sandwiches & Rolls (Differentiated!)
+  // 6. SANDWICHES
   if (name.includes('sandwich') || name.includes('toast') || name.includes('panini')) {
-    if (name.includes('chicken')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_sandwich);
-    if (name.includes('paneer')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.paneer_sandwich);
-    if (name.includes('cheese') && !name.includes('veg')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.cheese_sandwich);
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.veg_sandwich);
+    if (name.includes('chicken')) return '/dishes/chicken_sandwich.jpg';
+    if (name.includes('paneer')) return '/dishes/paneer_roll.jpg';
+    return '/dishes/grilled_sandwich.jpg';
   }
 
+  // 7. ROLLS
   if (name.includes('roll') || name.includes('wrap') || name.includes('kathi')) {
     return '/dishes/paneer_roll.jpg';
   }
 
-  // 8. Pizza & Pasta
-  if (name.includes('pizza')) {
-    if (name.includes('chicken')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.chicken_pizza);
-    if (name.includes('paneer')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.paneer_pizza);
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.veg_pizza);
+  // 8. TRADITIONAL INDIAN SPECIALTIES
+  if (name.includes('pav') && name.includes('bhaji')) return '/dishes/pav_bhaji.jpg';
+  if (name.includes('dal') && (name.includes('baati') || name.includes('bati'))) return '/dishes/dal_baati.jpg';
+  if (name.includes('chole') && (name.includes('puri') || name.includes('bhature'))) return '/dishes/chole_puri.jpg';
+  if (name.includes('dhokla') || name.includes('khaman')) return '/dishes/dhokla.jpg';
+  if (name.includes('bun maska') || (name.includes('bun') && name.includes('butter'))) return '/dishes/bun_maska.jpg';
+  if (name.includes('gulab jamun')) return '/dishes/gulab_jamun.jpg';
+
+  // 9. BEVERAGES
+  if (category === 'Beverages' || name.includes('tea') || name.includes('chai') || name.includes('coffee') || name.includes('shake') || name.includes('latte')) {
+    if (name.includes('ginger') || name.includes('adrak')) return '/dishes/ginger_tea.jpg';
+    if (name.includes('chai') || name.includes('tea')) return '/dishes/masala_chai.jpg';
+    if (name.includes('filter coffee') || name.includes('kaapi')) return '/dishes/filter_coffee.jpg';
+    if (name.includes('kulhad')) return '/dishes/kulhad_coffee.jpg';
+    if (name.includes('bubblegum')) return '/dishes/bubblegum_coffee.jpg';
+    if (name.includes('butterscotch')) return '/dishes/butterscotch_coffee.jpg';
+    if (name.includes('caramel') || name.includes('cold coffee') || name.includes('frappe')) return '/dishes/caramel_coffee.jpg';
+    if (name.includes('special') || name.includes('signature')) return '/dishes/special_coffee.jpg';
+    if (name.includes('shake') || name.includes('smoothie')) return '/dishes/vanilla_shake.jpg';
+    return '/dishes/hot_coffee.jpg';
   }
 
-  if (name.includes('pasta')) {
-    if (name.includes('white') || name.includes('alfredo')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.white_pasta);
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.red_pasta);
+  // 10. DESSERTS
+  if (category === 'Desserts' || name.includes('sweet') || name.includes('dessert') || name.includes('halwa')) {
+    return '/dishes/gulab_jamun.jpg';
   }
 
-  // 9. Beverages
-  if (category === 'Beverages' || name.includes('tea') || name.includes('chai') || name.includes('coffee') || name.includes('shake') || name.includes('mojito') || name.includes('cooler')) {
-    if (name.includes('cold coffee') || name.includes('frappe')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.cold_coffee);
-    if (name.includes('mojito') || name.includes('cooler') || name.includes('soda')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.mojito);
-    if (name.includes('shake') || name.includes('smoothie')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.milkshake);
-    if (name.includes('ginger') || name.includes('adrak')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.ginger_tea);
-    if (name.includes('chai') || name.includes('tea')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.masala_chai);
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.hot_coffee);
+  // 11. MEALS
+  if (category === 'Meals' || name.includes('thali') || name.includes('curry') || name.includes('biryani') || name.includes('rice')) {
+    return '/dishes/dal_baati.jpg';
   }
 
-  // 10. Desserts
-  if (category === 'Desserts' || name.includes('brownie') || name.includes('cake') || name.includes('waffle') || name.includes('ice cream')) {
-    if (name.includes('brownie')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.brownie);
-    if (name.includes('waffle')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.waffle);
-    if (name.includes('ice cream')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.ice_cream);
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.brownie);
-  }
-
-  // 11. Meals & Curries
-  if (category === 'Meals' || name.includes('biryani') || name.includes('curry') || name.includes('rice') || name.includes('dal')) {
-    if (name.includes('biryani')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.biryani);
-    if (name.includes('chicken')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.butter_chicken);
-    if (name.includes('paneer')) return pick(FOOD_PHOTOGRAPHY_REGISTRY.paneer_curry);
-    return pick(FOOD_PHOTOGRAPHY_REGISTRY.biryani);
-  }
-
-  // Category fallback
-  if (category === 'Beverages') return pick(FOOD_PHOTOGRAPHY_REGISTRY.hot_coffee);
-  if (category === 'Desserts') return pick(FOOD_PHOTOGRAPHY_REGISTRY.brownie);
-  if (category === 'Meals') return pick(FOOD_PHOTOGRAPHY_REGISTRY.biryani);
-  return pick(FOOD_PHOTOGRAPHY_REGISTRY.french_fries);
+  return '/dishes/grilled_sandwich.jpg';
 }
 
 export interface ParsedMenuItem {
@@ -363,7 +158,7 @@ export const SAMPLE_DIGITIZED_MENU: ParsedMenuItem[] = [
     cost: 60,
     description: 'Bite-sized crunchy golden chicken popcorn clusters served with spicy garlic mayo dip.',
     emoji: '🍗',
-    imageUrl: matchLocalDishImage('Crispy Chicken Popcorn', 'Snacks'),
+    imageUrl: '/dishes/chicken_popcorn.jpg',
     selected: true,
   },
   {
@@ -373,7 +168,17 @@ export const SAMPLE_DIGITIZED_MENU: ParsedMenuItem[] = [
     cost: 70,
     description: 'Tender chicken tenders with a crunchy panko breadcrumb crust served with honey mustard sauce.',
     emoji: '🍗',
-    imageUrl: matchLocalDishImage('Golden Chicken Strips', 'Snacks'),
+    imageUrl: '/dishes/chicken_strips.jpg',
+    selected: true,
+  },
+  {
+    name: 'Glazed BBQ Chicken Wings',
+    category: 'Snacks',
+    price: 190,
+    cost: 75,
+    description: 'Succulent chicken wings tossed in sticky smoky barbecue glaze, sprinkled with sesame seeds.',
+    emoji: '🍗',
+    imageUrl: '/dishes/chicken_wings.jpg',
     selected: true,
   },
   {
@@ -383,7 +188,7 @@ export const SAMPLE_DIGITIZED_MENU: ParsedMenuItem[] = [
     cost: 45,
     description: 'Crispy golden fried pleated vegetable dumplings served with fiery red Sichuan chili chutney.',
     emoji: '🥟',
-    imageUrl: matchLocalDishImage('Veg. Fried Momos', 'Snacks'),
+    imageUrl: '/dishes/veg_fried_momos.jpg',
     selected: true,
   },
   {
@@ -393,17 +198,37 @@ export const SAMPLE_DIGITIZED_MENU: ParsedMenuItem[] = [
     cost: 55,
     description: 'Delicate steamed juicy chicken dumplings served in an authentic bamboo basket with spicy dip.',
     emoji: '🥟',
-    imageUrl: matchLocalDishImage('Steamed Chicken Momos', 'Snacks'),
+    imageUrl: '/dishes/chicken_momos.jpg',
     selected: true,
   },
   {
-    name: 'Cheese Butter Maggi',
+    name: 'Crispy Peri Peri Fries',
+    category: 'Snacks',
+    price: 110,
+    cost: 40,
+    description: 'Golden shoestring fries tossed in fiery red peri peri chili seasoning with creamy garlic dip.',
+    emoji: '🍟',
+    imageUrl: '/dishes/peri_peri_fries.jpg',
+    selected: true,
+  },
+  {
+    name: 'Gourmet Veggie Cheese Burger',
+    category: 'Snacks',
+    price: 130,
+    cost: 50,
+    description: 'Spiced vegetable patty with melted golden cheddar cheese, lettuce, and secret sauce in a brioche bun.',
+    emoji: '🍔',
+    imageUrl: '/dishes/veg_cheese_burger.jpg',
+    selected: true,
+  },
+  {
+    name: 'Spicy Chicken Maggi Noodles',
     category: 'Snacks',
     price: 95,
     cost: 35,
-    description: 'Street-style Maggi noodles cooked with finely chopped veggies, secret magic masala, and grated cheddar cheese.',
+    description: 'Steaming hot Indian masala noodles loaded with tender shredded spiced chicken pieces and coriander.',
     emoji: '🍜',
-    imageUrl: '/dishes/plain_maggi.jpg',
+    imageUrl: '/dishes/chicken_maggi.jpg',
     selected: true,
   },
   {
@@ -439,9 +264,7 @@ export const SAMPLE_DIGITIZED_MENU: ParsedMenuItem[] = [
 ];
 
 /**
- * Preprocesses an image via canvas:
- * 1. Rescales high-res mobile photos to max 1800px (prevents OOM on phones, 5x faster OCR)
- * 2. Applies mild contrast stretching to make printed menu text crisp
+ * Preprocesses an image via canvas for OCR
  */
 export async function preprocessImageForOcr(dataUrl: string): Promise<string> {
   return new Promise((resolve) => {
