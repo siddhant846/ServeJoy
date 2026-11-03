@@ -100,10 +100,11 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
 
         <button
           onClick={onOpenAiDishModal}
-          className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:opacity-95 transition"
+          title="Scan physical printed menu photo with Google Gemini Vision AI"
+          className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:opacity-95 transition active:scale-95 shrink-0"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          <span>AI Add Dish</span>
+          <span>AI Scan Menu</span>
         </button>
       </div>
 

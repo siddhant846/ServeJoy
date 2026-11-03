@@ -60,20 +60,25 @@ export const AddTab: React.FC<AddTabProps> = ({ onOpenAiDishModal }) => {
   return (
     <div className="w-full max-w-4xl mx-auto pb-36 space-y-5 animate-fade-in">
       {/* AI Assistant Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#3a1e12] to-[#592b18] p-5 text-white shadow-elevated">
-        <h2 className="font-display text-xl font-bold tracking-tight">Menu Manager</h2>
-        <p className="mt-1 text-xs text-amber-200/80">
-          Add single dishes manually or use AI Vision to generate high-profit dishes and pricing.
+      <div className="rounded-3xl bg-gradient-to-r from-[#3a1e12] via-[#592b18] to-[#3a1e12] p-5 sm:p-6 text-white shadow-elevated border border-amber-500/25">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-accent text-white shadow-sm">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <h2 className="font-display text-xl font-bold tracking-tight">AI Menu Digitizer & Studio</h2>
+        </div>
+        <p className="mt-1.5 text-xs text-amber-200/90 leading-relaxed max-w-xl">
+          Take a photo of your physical printed menu, counter board, or laminated card. Google Gemini 1.5 Flash Vision AI will parse all dishes, prices, and categories into ServeJoy with AI culinary photography.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2.5">
           <button
             type="button"
             onClick={onOpenAiDishModal}
-            className="flex items-center gap-1.5 rounded-2xl bg-accent px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-95"
+            className="flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-95"
           >
-            <Sparkles className="h-4 w-4" />
-            <span>AI Dish Studio & Assistant</span>
+            <Camera className="h-4 w-4" />
+            <span>Scan Menu Photo with AI Vision</span>
           </button>
         </div>
       </div>

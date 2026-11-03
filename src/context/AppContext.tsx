@@ -29,6 +29,7 @@ interface AppContextType {
   setUserRole: (role: UserRole) => void;
   menuItems: MenuItem[];
   addMenuItem: (item: Omit<MenuItem, 'id' | 'sortOrder'>) => void;
+  addMultipleMenuItems: (items: Omit<MenuItem, 'id' | 'sortOrder'>[]) => void;
   updateMenuItem: (item: MenuItem) => void;
   deleteMenuItem: (id: string) => void;
   toggleItemAvailability: (id: string) => void;
@@ -243,6 +244,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setMenuItems((prev) => [...prev, newItem]);
     toast.success(`Added ${newItem.name} to menu!`);
+  };
+
+  const addMultipleMenuItems = (newDishes: Omit<MenuItem, 'id' | 'sortOrder'>[]) => {
+    const formatted = newDishes.map((item, index) => {
+      let imageUrl = item.imageUrl;
+      if (!imageUrl || imageUrl.includes('unsplash.com')) {
+        imageUrl = matchLocalDishImage(item.name, item.category);
+      }
+      return {
+        ...item,
+        imageUrl,
+        id: `item_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 4)}`,
+        sortOrder: menuItems.length + index + 1,
+      };
+    });
+    setMenuItems((prev) => [...prev, ...formatted]);
+    toast.success(`Successfully added ${formatted.length} dishes to menu!`, { icon: '🍽️' });
   };
 
   const updateMenuItem = (item: MenuItem) => {
@@ -560,6 +578,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setUserRole,
         menuItems,
         addMenuItem,
+        addMultipleMenuItems,
         updateMenuItem,
         deleteMenuItem,
         toggleItemAvailability,
