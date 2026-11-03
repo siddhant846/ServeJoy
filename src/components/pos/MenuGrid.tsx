@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { MenuItem } from '../../types';
-import { Search, Plus, Minus, Sparkles, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Search, Plus, Minus, Sparkles, AlertCircle, ShoppingBag, Pencil } from 'lucide-react';
+import { EditDishModal } from './EditDishModal';
 
 interface MenuGridProps {
   onOpenAiDishModal: () => void;
@@ -22,6 +23,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [flyingItems, setFlyingItems] = useState<FlyingItem[]>([]);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
   const triggerFlyAnimation = (e: React.MouseEvent, item: MenuItem) => {
     let startX = e.clientX;
@@ -175,20 +177,35 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
                       'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&auto=format&fit=crop&q=80';
                   }}
                 />
-                <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+                <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm z-10">
                   {item.category}
                 </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    regenerateDishImage(item.id);
-                  }}
-                  title="Regenerate unique AI photography for this dish"
-                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white/90 hover:text-white hover:bg-black/90 backdrop-blur-sm transition active:scale-90 opacity-80 hover:opacity-100"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                </button>
+
+                <div className="absolute right-2 top-2 flex items-center gap-1.5 z-10">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingItem(item);
+                    }}
+                    title="Edit dish name, price, photo, or sold-out status"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-amber-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition active:scale-90 opacity-85 hover:opacity-100 shadow-sm"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      regenerateDishImage(item.id);
+                    }}
+                    title="Regenerate unique AI photography for this dish"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-amber-400 hover:text-white hover:bg-black/90 backdrop-blur-sm transition active:scale-90 opacity-85 hover:opacity-100 shadow-sm"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </button>
+                </div>
                 {!item.isAvailable && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
                     <span className="rounded-full bg-red-600/90 px-3 py-1 text-xs font-extrabold text-white">
@@ -310,6 +327,13 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
           )}
         </div>
       ))}
+
+      {/* Edit Dish Modal */}
+      <EditDishModal
+        isOpen={!!editingItem}
+        onClose={() => setEditingItem(null)}
+        item={editingItem}
+      />
     </div>
   );
 };

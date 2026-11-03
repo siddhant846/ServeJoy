@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { MenuItem } from '../types';
+import { cloudSync } from '../services/cloudSync';
 import {
   Coffee,
   Plus,
@@ -40,25 +41,55 @@ export const CustomerMenuPage: React.FC = () => {
   const [isOrderPlaced, setIsOrderPlaced] = useState<boolean>(false);
   const [placedOrderKot, setPlacedOrderKot] = useState<string>('');
   const [isCallWaiterOpen, setIsCallWaiterOpen] = useState<boolean>(false);
+  const [cloudItems, setCloudItems] = useState<MenuItem[] | null>(null);
+
+  // Poll live menu updates from cloud for cross-device synchronization (e.g. Sold Out toggles, price updates, new dishes)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveMenu = async () => {
+      if (!userId) return;
+      try {
+        const remote = await cloudSync.pullMenuItems(userId);
+        if (isMounted && remote && remote.length > 0) {
+          setCloudItems(remote);
+        }
+      } catch (e) {
+        console.warn('Failed to pull live menu', e);
+      }
+    };
+
+    fetchLiveMenu();
+    const interval = setInterval(fetchLiveMenu, 8000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [userId]);
+
+  const activeMenu = cloudItems || menuItems;
 
   const categories = useMemo(() => {
     const set = new Set<string>();
-    menuItems.forEach((i) => set.add(i.category));
+    activeMenu.forEach((i) => set.add(i.category));
     return ['All', ...Array.from(set)];
-  }, [menuItems]);
+  }, [activeMenu]);
 
   const filteredItems = useMemo(() => {
-    return menuItems.filter((item) => {
-      if (!item.isAvailable) return false;
+    return activeMenu.filter((item) => {
       const matchCat = selectedCategory === 'All' || item.category === selectedCategory;
       const matchSearch =
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase());
       return matchCat && matchSearch;
     });
-  }, [menuItems, selectedCategory, searchQuery]);
+  }, [activeMenu, selectedCategory, searchQuery]);
 
   const handleAddItem = (id: string) => {
+    const item = activeMenu.find((m) => m.id === id);
+    if (!item || item.isAvailable === false) {
+      toast.error('This dish is currently sold out');
+      return;
+    }
     setCustomerCart((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
   };
 
@@ -75,7 +106,7 @@ export const CustomerMenuPage: React.FC = () => {
   };
 
   const cartTotal = Object.entries(customerCart).reduce((sum, [id, qty]) => {
-    const item = menuItems.find((m) => m.id === id);
+    const item = activeMenu.find((m) => m.id === id);
     return sum + (item ? item.price * qty : 0);
   }, 0);
 
@@ -87,8 +118,18 @@ export const CustomerMenuPage: React.FC = () => {
       return;
     }
 
+    // Guard against sold out items in cart
+    const hasSoldOut = Object.keys(customerCart).some((id) => {
+      const item = activeMenu.find((m) => m.id === id);
+      return item && item.isAvailable === false;
+    });
+    if (hasSoldOut) {
+      toast.error('Some dishes in your cart are sold out. Please remove them.');
+      return;
+    }
+
     const items = Object.entries(customerCart).map(([id, qty]) => {
-      const item = menuItems.find((m) => m.id === id)!;
+      const item = activeMenu.find((m) => m.id === id)!;
       return {
         menuItemId: item.id,
         name: item.name,
@@ -177,27 +218,48 @@ export const CustomerMenuPage: React.FC = () => {
         <div className="space-y-3">
           {filteredItems.map((item) => {
             const qty = customerCart[item.id] || 0;
+            const isSoldOut = item.isAvailable === false;
+
             return (
               <div
                 key={item.id}
-                className="flex gap-3 rounded-3xl border border-border bg-card p-3 shadow-card"
+                className={`flex gap-3 rounded-3xl border border-border bg-card p-3 shadow-card transition ${
+                  isSoldOut ? 'opacity-65' : ''
+                }`}
               >
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-secondary">
                   <img
                     src={item.imageUrl}
                     alt={item.name}
                     className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/dishes/pav_bhaji.jpg';
+                    }}
                   />
-                  <span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                  <span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white z-10">
                     {item.emoji}
                   </span>
+                  {isSoldOut && (
+                    <div className="absolute inset-0 bg-black/65 backdrop-blur-[1px] flex items-center justify-center z-10">
+                      <span className="rounded-full bg-red-600/95 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm">
+                        Sold Out
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-1 flex-col justify-between">
                   <div>
-                    <h3 className="font-display text-sm font-bold text-foreground leading-snug">
-                      {item.name}
-                    </h3>
+                    <div className="flex items-start justify-between gap-1">
+                      <h3 className="font-display text-sm font-bold text-foreground leading-snug">
+                        {item.name}
+                      </h3>
+                      {isSoldOut && (
+                        <span className="shrink-0 text-[10px] font-extrabold text-red-500 uppercase tracking-wide">
+                          Sold Out
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">
                       {item.description}
                     </p>
@@ -209,7 +271,11 @@ export const CustomerMenuPage: React.FC = () => {
                       {item.price}
                     </span>
 
-                    {qty > 0 ? (
+                    {isSoldOut ? (
+                      <span className="rounded-xl border border-border/80 bg-secondary/80 px-3 py-1.5 text-xs font-bold text-muted-foreground select-none cursor-not-allowed">
+                        Sold Out
+                      </span>
+                    ) : qty > 0 ? (
                       <div className="flex items-center gap-2 rounded-xl bg-accent px-2 py-1 text-white shadow-sm">
                         <button
                           onClick={() => handleRemoveItem(item.id)}
@@ -228,7 +294,7 @@ export const CustomerMenuPage: React.FC = () => {
                     ) : (
                       <button
                         onClick={() => handleAddItem(item.id)}
-                        className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent hover:text-white transition"
+                        className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent hover:text-white transition active:scale-95"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         <span>Add</span>

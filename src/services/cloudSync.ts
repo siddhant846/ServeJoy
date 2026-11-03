@@ -1,4 +1,4 @@
-import { Order, WaiterRequest, Bill, CloudSyncStatus } from '../types';
+import { Order, WaiterRequest, Bill, CloudSyncStatus, MenuItem } from '../types';
 import { storage } from './storage';
 
 const FIREBASE_PROJECT = 'servejoy-pos-live';
@@ -143,6 +143,51 @@ class CloudSyncEngine {
       console.warn('[CloudSync] pushBill error:', err);
     }
     return false;
+  }
+
+  async pushMenuItems(items: MenuItem[], businessId?: string): Promise<boolean> {
+    if (!this.status.isOnline) return false;
+    try {
+      const bizId = businessId || storage.getActiveBusinessId();
+      const collection = this.getCollectionName('menu', bizId);
+      const url = `${FIRESTORE_BASE}/${collection}/active_menu?key=${FIREBASE_KEY}`;
+      const doc = this.makeDocument('active_menu', { items, businessId: bizId }, 'menu');
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc),
+      });
+      if (res.ok) {
+        this.status.lastSyncedAt = new Date();
+        this.notifyListeners();
+        return true;
+      }
+    } catch (err: any) {
+      console.warn('[CloudSync] pushMenuItems error:', err);
+    }
+    return false;
+  }
+
+  async pullMenuItems(businessId?: string): Promise<MenuItem[] | null> {
+    try {
+      const bizId = businessId || storage.getActiveBusinessId();
+      const collection = this.getCollectionName('menu', bizId);
+      const url = `${FIRESTORE_BASE}/${collection}/active_menu?key=${FIREBASE_KEY}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const payloadStr = data.fields?.payload?.stringValue;
+        if (payloadStr) {
+          const parsed = JSON.parse(payloadStr);
+          if (Array.isArray(parsed.items)) {
+            return parsed.items;
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[CloudSync] pullMenuItems error:', err);
+    }
+    return null;
   }
 
   async pullRemoteData(): Promise<{ newOrders: Order[]; newRequests: WaiterRequest[] }> {

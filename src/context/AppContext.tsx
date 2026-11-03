@@ -288,7 +288,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       sortOrder: menuItems.length + 1,
     };
-    setMenuItems((prev) => [...prev, newItem]);
+    const updated = [...menuItems, newItem];
+    setMenuItems(updated);
+    storage.saveMenuItems(updated);
+    cloudSync.pushMenuItems(updated);
     toast.success(`Added ${newItem.name} to menu!`);
   };
 
@@ -305,25 +308,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         sortOrder: menuItems.length + index + 1,
       };
     });
-    setMenuItems((prev) => [...prev, ...formatted]);
+    const updated = [...menuItems, ...formatted];
+    setMenuItems(updated);
+    storage.saveMenuItems(updated);
+    cloudSync.pushMenuItems(updated);
     toast.success(`Successfully added ${formatted.length} dishes to menu!`, { icon: '🍽️' });
   };
 
   const updateMenuItem = (item: MenuItem) => {
-    setMenuItems((prev) => prev.map((i) => (i.id === item.id ? item : i)));
+    const updated = menuItems.map((i) => (i.id === item.id ? item : i));
+    setMenuItems(updated);
+    storage.saveMenuItems(updated);
+    cloudSync.pushMenuItems(updated);
     toast.success(`Updated ${item.name}!`);
   };
 
   const deleteMenuItem = (id: string) => {
-    setMenuItems((prev) => prev.filter((i) => i.id !== id));
+    const updated = menuItems.filter((i) => i.id !== id);
+    setMenuItems(updated);
+    storage.saveMenuItems(updated);
+    cloudSync.pushMenuItems(updated);
     removeFromCart(id);
     toast.info('Item removed from menu');
   };
 
   const toggleItemAvailability = (id: string) => {
-    setMenuItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, isAvailable: !i.isAvailable } : i))
-    );
+    const updated = menuItems.map((i) => (i.id === id ? { ...i, isAvailable: !i.isAvailable } : i));
+    setMenuItems(updated);
+    storage.saveMenuItems(updated);
+    cloudSync.pushMenuItems(updated);
+    const target = updated.find((i) => i.id === id);
+    if (target) {
+      if (target.isAvailable) {
+        toast.success(`${target.name} is now Available in Stock!`, { icon: '🟢' });
+      } else {
+        toast.info(`${target.name} marked as Sold Out!`, { icon: '🔴' });
+      }
+    }
   };
 
   const regenerateDishImage = (itemId: string) => {
@@ -333,6 +354,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updated = menuItems.map((i) => (i.id === itemId ? { ...i, imageUrl: newImage } : i));
     setMenuItems(updated);
     storage.saveMenuItems(updated);
+    cloudSync.pushMenuItems(updated);
     toast.success(`Generated unique AI photography for ${target.name}!`, { icon: '✨' });
   };
 
@@ -343,6 +365,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }));
     setMenuItems(updated);
     storage.saveMenuItems(updated);
+    cloudSync.pushMenuItems(updated);
     toast.success('Generated unique AI photography for all dishes!', { icon: '✨' });
   };
 
