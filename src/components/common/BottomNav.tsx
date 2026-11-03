@@ -53,7 +53,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
       badge: pendingOrdersCount,
       visible: userRole === 'owner' || userRole === 'cashier',
     },
-    { id: 'add' as MainTabType, label: 'Add', icon: Plus, visible: userRole === 'owner' },
     { id: 'insights' as MainTabType, label: 'Insights', icon: BarChart3, visible: userRole === 'owner' },
     { id: 'history' as MainTabType, label: 'History', icon: History, visible: userRole === 'owner' },
   ].filter((t) => t.visible);

@@ -19,6 +19,9 @@ import { SoundboxModal } from '../components/pos/SoundboxModal';
 import { AiDishModal } from '../components/pos/AiDishModal';
 import { PrinterManagerModal } from '../components/pos/PrinterManagerModal';
 import { SettingsModal } from '../components/pos/SettingsModal';
+import { PosSidebar } from '../components/pos/PosSidebar';
+import { AddDishModal } from '../components/pos/AddDishModal';
+import { AddTableModal } from '../components/pos/AddTableModal';
 import { Bill } from '../types';
 import { subscriptionService } from '../services/subscriptionService';
 import { Utensils, MapPin } from 'lucide-react';
@@ -44,6 +47,8 @@ export const PosPage: React.FC = () => {
   const [isAiDishModalOpen, setIsAiDishModalOpen] = useState<boolean>(false);
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState<boolean>(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
+  const [isAddDishModalOpen, setIsAddDishModalOpen] = useState<boolean>(false);
+  const [isAddTableModalOpen, setIsAddTableModalOpen] = useState<boolean>(false);
   const [selectedBillForPrint, setSelectedBillForPrint] = useState<Bill | null>(null);
 
   const activeOrdersCount = orders.filter(
@@ -95,92 +100,120 @@ export const PosPage: React.FC = () => {
       />
 
       <main className="mx-auto max-w-[1720px] px-3.5 sm:px-6 lg:px-10 py-4">
-        {/* ================= TAB 1: HOME ================= */}
-        {currentTab === 'home' && (
-          <div className="space-y-4 pb-36">
-            {/* Top Sub-Tab Switcher: POS Menu & Fast Billing vs Visual Floor Plan */}
-            <div className="flex items-center justify-between rounded-2xl bg-secondary/80 p-1 border border-border/80 shadow-sm">
-              <button
-                type="button"
-                onClick={() => setHomeSubTab('pos')}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition active:scale-98 ${
-                  homeSubTab === 'pos'
-                    ? 'bg-card text-foreground shadow-sm border border-border/60'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Utensils className="h-3.5 w-3.5 text-accent" />
-                <span>POS Menu & Fast Billing</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setHomeSubTab('floor')}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition active:scale-98 ${
-                  homeSubTab === 'floor'
-                    ? 'bg-card text-foreground shadow-sm border border-border/60'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <MapPin className="h-3.5 w-3.5 text-accent" />
-                <span>Visual Floor Plan</span>
-                {activeOrdersCount > 0 && (
-                  <span className="flex h-5 items-center justify-center rounded-full bg-accent px-1.5 font-receipt text-[10px] font-bold text-white animate-badge-pulse">
-                    {activeOrdersCount}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* Sub-view: Visual Floor Plan */}
-            {homeSubTab === 'floor' ? (
-              <FloorPlan
-                onStartOrderForTable={(tableName) => {
-                  setHomeSubTab('pos');
-                  setIsCartModalOpen(true);
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          {/* Left Desktop Sidebar - consumes desktop left margin with Quick Actions, Bestsellers & Floor Pulse */}
+          {userRole !== 'waiter' && userRole !== 'kitchen' && (
+            <aside className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-20 self-start z-10">
+              <PosSidebar
+                onOpenAddDish={() => setIsAddDishModalOpen(true)}
+                onOpenAddTable={() => setIsAddTableModalOpen(true)}
+                onOpenAiScan={() => setIsAiDishModalOpen(true)}
+                onOpenTableQR={() => setIsQRModalOpen(true)}
+                onOpenSoundbox={() => setIsSoundboxModalOpen(true)}
+                onOpenPrinter={() => setIsPrinterModalOpen(true)}
+                onOpenSettings={() => setIsSettingsModalOpen(true)}
+                homeSubTab={homeSubTab}
+                onHomeSubTabChange={(sub) => {
+                  setCurrentTab('home');
+                  setHomeSubTab(sub);
                 }}
               />
-            ) : (
-              /* Sub-view: POS Menu & Fast Billing */
-              <div className="space-y-4">
-                {/* Today's Summary Collapsible Business Card */}
-                <TodaySummary />
+            </aside>
+          )}
 
-                {/* Full-width Menu Grid */}
-                <div className="w-full">
-                  <MenuGrid onOpenAiDishModal={() => setIsAiDishModalOpen(true)} />
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0 w-full">
+            {/* ================= TAB 1: HOME ================= */}
+            {currentTab === 'home' && (
+              <div className="space-y-4 pb-36">
+                {/* Top Sub-Tab Switcher: POS Menu & Fast Billing vs Visual Floor Plan */}
+                <div className="flex items-center justify-between rounded-2xl bg-secondary/80 p-1 border border-border/80 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setHomeSubTab('pos')}
+                    className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition active:scale-98 ${
+                      homeSubTab === 'pos'
+                        ? 'bg-card text-foreground shadow-sm border border-border/60'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Utensils className="h-3.5 w-3.5 text-accent" />
+                    <span>POS Menu & Fast Billing</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHomeSubTab('floor')}
+                    className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold transition active:scale-98 ${
+                      homeSubTab === 'floor'
+                        ? 'bg-card text-foreground shadow-sm border border-border/60'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-accent" />
+                    <span>Visual Floor Plan</span>
+                    {activeOrdersCount > 0 && (
+                      <span className="flex h-5 items-center justify-center rounded-full bg-accent px-1.5 font-receipt text-[10px] font-bold text-white animate-badge-pulse">
+                        {activeOrdersCount}
+                      </span>
+                    )}
+                  </button>
                 </div>
 
-                {/* Floating Cart Button (Appears only when items are in cart) */}
-                <FloatingCartFab onClick={() => setIsCartModalOpen(true)} />
+                {/* Sub-view: Visual Floor Plan */}
+                {homeSubTab === 'floor' ? (
+                  <FloorPlan
+                    onStartOrderForTable={(tableName) => {
+                      setHomeSubTab('pos');
+                      setIsCartModalOpen(true);
+                    }}
+                  />
+                ) : (
+                  /* Sub-view: POS Menu & Fast Billing */
+                  <div className="space-y-4">
+                    {/* Today's Summary Collapsible Business Card */}
+                    <TodaySummary />
+
+                    {/* Full-width Menu Grid */}
+                    <div className="w-full">
+                      <MenuGrid
+                        onOpenAiDishModal={() => setIsAiDishModalOpen(true)}
+                        onOpenAddDishModal={() => setIsAddDishModalOpen(true)}
+                      />
+                    </div>
+
+                    {/* Floating Cart Button (Appears only when items are in cart) */}
+                    <FloatingCartFab onClick={() => setIsCartModalOpen(true)} />
+                  </div>
+                )}
               </div>
             )}
+
+            {/* ================= TAB 2: WAITER ================= */}
+            {currentTab === 'waiter' && <WaiterPage hideNavbar={true} />}
+
+            {/* ================= TAB 3: KITCHEN ================= */}
+            {currentTab === 'kitchen' && <KitchenPage hideNavbar={true} />}
+
+            {/* ================= TAB 4: ORDERS ================= */}
+            {currentTab === 'orders' && <OrdersTab />}
+
+            {/* ================= TAB 5: ADD DISH ================= */}
+            {currentTab === 'add' && <AddTab onOpenAiDishModal={() => setIsAiDishModalOpen(true)} />}
+
+            {/* ================= TAB 6: INSIGHTS ================= */}
+            {currentTab === 'insights' && (
+              <div className="pb-24">
+                <AnalyticsDashboard />
+              </div>
+            )}
+
+            {/* ================= TAB 7: HISTORY ================= */}
+            {currentTab === 'history' && (
+              <HistoryTab onSelectBillForReceipt={(bill) => setSelectedBillForPrint(bill)} />
+            )}
           </div>
-        )}
-
-        {/* ================= TAB 2: WAITER ================= */}
-        {currentTab === 'waiter' && <WaiterPage hideNavbar={true} />}
-
-        {/* ================= TAB 3: KITCHEN ================= */}
-        {currentTab === 'kitchen' && <KitchenPage hideNavbar={true} />}
-
-        {/* ================= TAB 4: ORDERS ================= */}
-        {currentTab === 'orders' && <OrdersTab />}
-
-        {/* ================= TAB 5: ADD DISH ================= */}
-        {currentTab === 'add' && <AddTab onOpenAiDishModal={() => setIsAiDishModalOpen(true)} />}
-
-        {/* ================= TAB 6: INSIGHTS ================= */}
-        {currentTab === 'insights' && (
-          <div className="pb-24">
-            <AnalyticsDashboard />
-          </div>
-        )}
-
-        {/* ================= TAB 7: HISTORY ================= */}
-        {currentTab === 'history' && (
-          <HistoryTab onSelectBillForReceipt={(bill) => setSelectedBillForPrint(bill)} />
-        )}
+        </div>
       </main>
 
       {/* Persistent Bottom Navigation Bar (7 Tabs) */}
@@ -234,6 +267,20 @@ export const PosPage: React.FC = () => {
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+      />
+
+      <AddDishModal
+        isOpen={isAddDishModalOpen}
+        onClose={() => setIsAddDishModalOpen(false)}
+        onOpenAiScan={() => {
+          setIsAddDishModalOpen(false);
+          setIsAiDishModalOpen(true);
+        }}
+      />
+
+      <AddTableModal
+        isOpen={isAddTableModalOpen}
+        onClose={() => setIsAddTableModalOpen(false)}
       />
     </div>
   );

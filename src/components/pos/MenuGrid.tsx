@@ -6,6 +6,7 @@ import { EditDishModal } from './EditDishModal';
 
 interface MenuGridProps {
   onOpenAiDishModal: () => void;
+  onOpenAddDishModal?: () => void;
 }
 
 interface FlyingItem {
@@ -18,7 +19,7 @@ interface FlyingItem {
   imageUrl?: string;
 }
 
-export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
+export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal, onOpenAddDishModal }) => {
   const { menuItems, cart, addToCart, updateCartQuantity, cafeProfile, regenerateDishImage, regenerateAllDishImages } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -101,6 +102,17 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ onOpenAiDishModal }) => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {onOpenAddDishModal && (
+            <button
+              onClick={onOpenAddDishModal}
+              title="Add a new dish to the menu"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-bold text-accent hover:bg-accent/20 transition active:scale-95 shadow-sm"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Dish</span>
+            </button>
+          )}
+
           <button
             onClick={regenerateAllDishImages}
             title="Regenerate unique bespoke AI photography for all dishes"
