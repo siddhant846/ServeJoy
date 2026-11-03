@@ -84,6 +84,10 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(100%)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'slide-right': {
+          '0%': { opacity: '0', transform: 'translateX(-100%)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
         'fade-in': {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
@@ -98,6 +102,7 @@ export default {
         'cart-bounce': 'cart-bounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'stepper-pop': 'stepper-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'slide-up': 'slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-right': 'slide-right 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
         'fade-in': 'fade-in 0.2s ease-out',
         'success-pop': 'success-pop 0.3s ease-out',
       },

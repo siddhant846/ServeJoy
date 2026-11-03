@@ -13,9 +13,11 @@ import {
   Settings,
   Clock,
   ShieldAlert,
+  Menu,
 } from 'lucide-react';
 
 interface AppHeaderProps {
+  onToggleSidebar?: () => void;
   onOpenQRModal?: () => void;
   onOpenSoundboxModal?: () => void;
   onOpenPrinterModal?: () => void;
@@ -23,6 +25,7 @@ interface AppHeaderProps {
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
+  onToggleSidebar,
   onOpenQRModal,
   onOpenSoundboxModal,
   onOpenPrinterModal,
@@ -34,8 +37,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <header className="sticky top-0 z-30 w-full bg-gradient-to-r from-[#221008] via-[#33170c] to-[#221008] text-white border-b border-amber-950/60 shadow-md backdrop-blur-md pt-[max(env(safe-area-inset-top,0px),0.5rem)] pb-2.5">
       <div className="mx-auto flex max-w-[1720px] items-center justify-between px-3.5 sm:px-6 lg:px-10">
-        {/* Left: Logo & Cafe Profile */}
-        <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
+        {/* Left: Hamburger Button + Logo & Cafe Profile */}
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 mr-2">
+          {onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label="Open sidebar menu"
+              title="Open quick menu & sidebar"
+              className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl bg-black/40 hover:bg-black/60 border border-amber-500/30 text-amber-300 hover:text-white transition active:scale-95 shadow-sm shrink-0"
+            >
+              <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
+          )}
+
           <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4e2514] to-[#2a1309] border border-amber-500/25 shadow-inner text-amber-300 shrink-0">
             <Coffee className="h-5 w-5 sm:h-6 sm:w-6 text-amber-300 drop-shadow-sm" />
           </div>

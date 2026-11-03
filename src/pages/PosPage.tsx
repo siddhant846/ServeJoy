@@ -20,6 +20,7 @@ import { AiDishModal } from '../components/pos/AiDishModal';
 import { PrinterManagerModal } from '../components/pos/PrinterManagerModal';
 import { SettingsModal } from '../components/pos/SettingsModal';
 import { PosSidebar } from '../components/pos/PosSidebar';
+import { PosSidebarDrawer } from '../components/pos/PosSidebarDrawer';
 import { AddDishModal } from '../components/pos/AddDishModal';
 import { AddTableModal } from '../components/pos/AddTableModal';
 import { Bill } from '../types';
@@ -40,7 +41,15 @@ export const PosPage: React.FC = () => {
   // Sub-tabs on Home screen: 'pos' (Menu & Billing) vs 'floor' (Visual Floor Plan)
   const [homeSubTab, setHomeSubTab] = useState<'pos' | 'floor'>('pos');
 
-  // Modals
+  // Modals & Drawers
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [isDesktopSidebarPinned, setIsDesktopSidebarPinned] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('servejoy_desktop_sidebar_pinned') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [isCartModalOpen, setIsCartModalOpen] = useState<boolean>(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState<boolean>(false);
   const [isSoundboxModalOpen, setIsSoundboxModalOpen] = useState<boolean>(false);
@@ -93,6 +102,7 @@ export const PosPage: React.FC = () => {
     <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       {/* Espresso Mobile Header */}
       <AppHeader
+        onToggleSidebar={() => setIsDrawerOpen((prev) => !prev)}
         onOpenQRModal={() => setIsQRModalOpen(true)}
         onOpenSoundboxModal={() => setIsSoundboxModalOpen(true)}
         onOpenPrinterModal={() => setIsPrinterModalOpen(true)}
@@ -101,9 +111,9 @@ export const PosPage: React.FC = () => {
 
       <main className="mx-auto max-w-[1720px] px-3.5 sm:px-6 lg:px-10 py-4">
         <div className="flex flex-col lg:flex-row gap-5 items-start">
-          {/* Left Desktop Sidebar - consumes desktop left margin with Quick Actions, Bestsellers & Floor Pulse */}
-          {userRole !== 'waiter' && userRole !== 'kitchen' && (
-            <aside className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-[4.75rem] self-start z-10 max-h-[calc(100vh-5.5rem)] overflow-y-auto overscroll-contain pr-1.5 pb-10 sidebar-scroll">
+          {/* Left Desktop Sidebar - if pinned to screen, it sits inline in the layout */}
+          {userRole !== 'waiter' && userRole !== 'kitchen' && isDesktopSidebarPinned && (
+            <aside className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-[4.75rem] self-start z-10 max-h-[calc(100vh-5.5rem)] overflow-y-auto overscroll-contain pr-1.5 pb-10 sidebar-scroll animate-fade-in">
               <PosSidebar
                 onOpenAddDish={() => setIsAddDishModalOpen(true)}
                 onOpenAddTable={() => setIsAddTableModalOpen(true)}
@@ -267,6 +277,37 @@ export const PosPage: React.FC = () => {
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+      />
+
+      {/* Slide-out Hamburger Sidebar Drawer (All Screens) */}
+      <PosSidebarDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onOpenAddDish={() => setIsAddDishModalOpen(true)}
+        onOpenAddTable={() => setIsAddTableModalOpen(true)}
+        onOpenAiScan={() => setIsAiDishModalOpen(true)}
+        onOpenTableQR={() => setIsQRModalOpen(true)}
+        onOpenSoundbox={() => setIsSoundboxModalOpen(true)}
+        onOpenPrinter={() => setIsPrinterModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        homeSubTab={homeSubTab}
+        onHomeSubTabChange={(sub) => {
+          setCurrentTab('home');
+          setHomeSubTab(sub);
+        }}
+        isPinned={isDesktopSidebarPinned}
+        onTogglePin={() => {
+          const next = !isDesktopSidebarPinned;
+          setIsDesktopSidebarPinned(next);
+          try {
+            localStorage.setItem('servejoy_desktop_sidebar_pinned', String(next));
+          } catch {}
+          if (next) {
+            toast.success('Sidebar pinned to desktop layout', { icon: '📌' });
+          } else {
+            toast.success('Sidebar unpinned (tap hamburger menu anytime)', { icon: '🍔' });
+          }
+        }}
       />
 
       <AddDishModal
