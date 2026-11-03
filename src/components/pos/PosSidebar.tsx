@@ -103,7 +103,7 @@ export const PosSidebar: React.FC<PosSidebarProps> = ({
   }, [bills, menuItems]);
 
   return (
-    <div className="space-y-3.5 select-none">
+    <div className="space-y-3.5 select-none pb-8">
       {/* 1. PRIMARY ACTIONS: Add Dish & Add Table */}
       <div className="rounded-3xl border border-border/80 bg-card p-3.5 shadow-card space-y-2.5">
         <div className="flex items-center justify-between px-1">

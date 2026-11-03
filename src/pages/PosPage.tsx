@@ -103,7 +103,7 @@ export const PosPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-5 items-start">
           {/* Left Desktop Sidebar - consumes desktop left margin with Quick Actions, Bestsellers & Floor Pulse */}
           {userRole !== 'waiter' && userRole !== 'kitchen' && (
-            <aside className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-20 self-start z-10">
+            <aside className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-[4.75rem] self-start z-10 max-h-[calc(100vh-5.5rem)] overflow-y-auto overscroll-contain pr-1.5 pb-10 sidebar-scroll">
               <PosSidebar
                 onOpenAddDish={() => setIsAddDishModalOpen(true)}
                 onOpenAddTable={() => setIsAddTableModalOpen(true)}
