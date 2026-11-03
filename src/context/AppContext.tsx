@@ -221,29 +221,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, []);
 
-  // Auto-upgrade existing menu items that have generic mismatched images (like grilled_sandwich.jpg on chicken popcorn or momos)
+  // Auto-upgrade existing menu items that have generic mismatched images or pollinations rate-limit URLs
   useEffect(() => {
     setMenuItems((prev) => {
       let changed = false;
       const updated = prev.map((item) => {
-        const lowerName = item.name.toLowerCase();
-        // Check if item has grilled_sandwich.jpg but is NOT a sandwich or toast
+        let cleanName = item.name.trim();
+        // If name has trailing numbers from column OCR (e.g. "Chicken Wings 80 Veg....", "French Fries 50 Chicken...")
+        const multiMatch = cleanName.match(/^(.*?)\s+\d{2,4}\b.*$/);
+        if (multiMatch && multiMatch[1] && multiMatch[1].length >= 3) {
+          cleanName = multiMatch[1].trim();
+          changed = true;
+        }
+
+        const lowerName = cleanName.toLowerCase();
+        const hasPollinations = item.imageUrl?.includes('pollinations.ai');
         const isMismatchedSandwich =
           item.imageUrl === '/dishes/grilled_sandwich.jpg' &&
           !lowerName.includes('sandwich') &&
           !lowerName.includes('toast') &&
           !lowerName.includes('panini');
-
-        // Check if chicken maggi has plain_maggi
         const isMismatchedMaggi =
           item.imageUrl === '/dishes/plain_maggi.jpg' &&
           lowerName.includes('chicken');
 
-        if (isMismatchedSandwich || isMismatchedMaggi || !item.imageUrl) {
+        if (hasPollinations || isMismatchedSandwich || isMismatchedMaggi || !item.imageUrl || cleanName !== item.name) {
           changed = true;
           return {
             ...item,
-            imageUrl: matchLocalDishImage(item.name, item.category),
+            name: cleanName,
+            imageUrl: matchLocalDishImage(cleanName, item.category),
           };
         }
         return item;
