@@ -179,18 +179,19 @@ class AuthService {
    * Real Google OAuth Login & Registration
    * Triggers the authentic Google popup with 'prompt: select_account' so the user picks their actual account.
    */
-  async loginWithGoogle(): Promise<LoginResult> {
-    try {
-      const googleUser = await signInWithGoogleReal();
-      return this.loginOwner(
-        googleUser.email,
-        googleUser.uid,
-        googleUser.photoURL,
-        googleUser.displayName
-      );
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Google Sign-In failed' };
-    }
+  loginWithGoogle(): Promise<LoginResult> {
+    return signInWithGoogleReal()
+      .then((googleUser) => {
+        return this.loginOwner(
+          googleUser.email,
+          googleUser.uid,
+          googleUser.photoURL,
+          googleUser.displayName
+        );
+      })
+      .catch((err: any) => {
+        return { success: false, error: err.message || 'Google Sign-In failed' };
+      });
   }
 
   /**

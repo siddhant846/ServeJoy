@@ -55,40 +55,41 @@ export const LoginPage: React.FC = () => {
   }, [navigate]);
 
   // Handle REAL Google OAuth Sign-In / Sign-Up
-  const handleGoogleAuth = async () => {
+  const handleGoogleAuth = () => {
     setIsLoading(true);
-    try {
-      const res = await authService.loginWithGoogle();
-
-      if (res.success) {
-        toast.success(`Welcome to ServeJoy, ${res.user?.displayName || 'Partner'}!`, { icon: '🎉' });
-        navigate('/');
-      } else if (res.error?.includes('Redirecting')) {
-        toast.info('Opening Google Sign-In...', { icon: '🔄' });
-      } else {
+    authService
+      .loginWithGoogle()
+      .then((res) => {
+        setIsLoading(false);
+        if (res.success) {
+          toast.success(`Welcome to ServeJoy, ${res.user?.displayName || 'Partner'}!`, { icon: '🎉' });
+          navigate('/');
+        } else if (res.error?.includes('Redirecting')) {
+          toast.info('Opening Google Sign-In...', { icon: '🔄' });
+        } else {
+          if (
+            res.error?.includes('configuration-not-found') ||
+            res.error?.includes('operation-not-allowed') ||
+            res.error?.includes('not yet enabled')
+          ) {
+            setShowConfigModal(true);
+          } else {
+            toast.error(res.error || 'Google authentication was cancelled.');
+          }
+        }
+      })
+      .catch((err: any) => {
+        setIsLoading(false);
         if (
-          res.error?.includes('configuration-not-found') ||
-          res.error?.includes('operation-not-allowed') ||
-          res.error?.includes('not yet enabled')
+          err?.message?.includes('configuration-not-found') ||
+          err?.message?.includes('operation-not-allowed') ||
+          err?.code === 'auth/configuration-not-found'
         ) {
           setShowConfigModal(true);
         } else {
-          toast.error(res.error || 'Google authentication was cancelled.');
+          toast.error('Google Sign-In error: ' + (err.message || String(err)));
         }
-      }
-    } catch (err: any) {
-      if (
-        err?.message?.includes('configuration-not-found') ||
-        err?.message?.includes('operation-not-allowed') ||
-        err?.code === 'auth/configuration-not-found'
-      ) {
-        setShowConfigModal(true);
-      } else {
-        toast.error('Google Sign-In error: ' + (err.message || String(err)));
-      }
-    } finally {
-      setIsLoading(false);
-    }
+      });
   };
 
   // Handle Owner Email Login / Sign-Up
