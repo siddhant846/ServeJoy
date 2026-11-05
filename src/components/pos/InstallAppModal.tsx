@@ -313,3 +313,4 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({ isOpen, onClos
     </div>
   );
 };
+

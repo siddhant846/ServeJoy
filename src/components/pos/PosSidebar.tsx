@@ -32,7 +32,6 @@ interface PosSidebarProps {
   onOpenSoundbox?: () => void;
   onOpenPrinter?: () => void;
   onOpenSettings?: () => void;
-  onOpenInstallApp?: () => void;
   homeSubTab?: 'pos' | 'floor';
   onHomeSubTabChange?: (subTab: 'pos' | 'floor') => void;
 }
@@ -45,7 +44,6 @@ export const PosSidebar: React.FC<PosSidebarProps> = ({
   onOpenSoundbox,
   onOpenPrinter,
   onOpenSettings,
-  onOpenInstallApp,
   homeSubTab = 'pos',
   onHomeSubTabChange,
 }) => {
@@ -351,23 +349,6 @@ export const PosSidebar: React.FC<PosSidebarProps> = ({
               <span>Receipt Printer</span>
             </div>
             <span className="text-[10px] text-muted-foreground">ESC/POS</span>
-          </button>
-        )}
-
-        {onOpenInstallApp && (
-          <button
-            type="button"
-            onClick={onOpenInstallApp}
-            className="w-full flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition active:scale-98"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex items-center -space-x-1">
-                <Apple className="h-3.5 w-3.5 text-accent" />
-                <Smartphone className="h-3.5 w-3.5 text-emerald-500" />
-              </div>
-              <span>Install on iPhone / Android</span>
-            </div>
-            <span className="text-[10px] font-bold text-accent font-receipt">iOS PWA</span>
           </button>
         )}
       </div>

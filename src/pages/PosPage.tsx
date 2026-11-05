@@ -23,7 +23,6 @@ import { PosSidebar } from '../components/pos/PosSidebar';
 import { PosSidebarDrawer } from '../components/pos/PosSidebarDrawer';
 import { AddDishModal } from '../components/pos/AddDishModal';
 import { AddTableModal } from '../components/pos/AddTableModal';
-import { InstallAppModal } from '../components/pos/InstallAppModal';
 import { Bill } from '../types';
 import { subscriptionService } from '../services/subscriptionService';
 import { Utensils, MapPin } from 'lucide-react';
@@ -59,7 +58,6 @@ export const PosPage: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
   const [isAddDishModalOpen, setIsAddDishModalOpen] = useState<boolean>(false);
   const [isAddTableModalOpen, setIsAddTableModalOpen] = useState<boolean>(false);
-  const [isInstallAppModalOpen, setIsInstallAppModalOpen] = useState<boolean>(false);
   const [selectedBillForPrint, setSelectedBillForPrint] = useState<Bill | null>(null);
 
   const activeOrdersCount = orders.filter(
@@ -128,7 +126,6 @@ export const PosPage: React.FC = () => {
                 onOpenSoundbox={() => setIsSoundboxModalOpen(true)}
                 onOpenPrinter={() => setIsPrinterModalOpen(true)}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
-                onOpenInstallApp={() => setIsInstallAppModalOpen(true)}
                 homeSubTab={homeSubTab}
                 onHomeSubTabChange={(sub) => {
                   setCurrentTab('home');
@@ -297,7 +294,6 @@ export const PosPage: React.FC = () => {
         onOpenSoundbox={() => setIsSoundboxModalOpen(true)}
         onOpenPrinter={() => setIsPrinterModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
-        onOpenInstallApp={() => setIsInstallAppModalOpen(true)}
         homeSubTab={homeSubTab}
         onHomeSubTabChange={(sub) => {
           setCurrentTab('home');
@@ -330,11 +326,6 @@ export const PosPage: React.FC = () => {
       <AddTableModal
         isOpen={isAddTableModalOpen}
         onClose={() => setIsAddTableModalOpen(false)}
-      />
-
-      <InstallAppModal
-        isOpen={isInstallAppModalOpen}
-        onClose={() => setIsInstallAppModalOpen(false)}
       />
     </div>
   );

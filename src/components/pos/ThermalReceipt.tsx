@@ -152,19 +152,30 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
   const handleBtPrint = async () => {
     setIsPrinting(true);
     try {
-      const printerName = activePrinter ? activePrinter.name : 'Thermal ESC/POS 58mm';
-      const res = await thermalPrinter.printEscPosBytes(escPosBytes, printerName);
+      if (thermalPrinter.isBluetoothSupported()) {
+        const printerName = activePrinter ? activePrinter.name : 'Thermal ESC/POS 58mm';
+        const res = await thermalPrinter.printEscPosBytes(escPosBytes, printerName);
 
-      if (res.success) {
-        toast.success(res.message, { icon: '📶' });
-      } else {
-        toast.error(res.errorReason || res.message || 'Bluetooth print failed.');
-        if (!thermalPrinter.isBluetoothSupported()) {
+        if (res.success) {
+          toast.success(res.message, { icon: '📶' });
+        } else {
+          toast.error(res.errorReason || res.message || 'Bluetooth print failed.');
           setIsPrinterModalOpen(true);
+        }
+      } else {
+        // Fallback for Android & Mobile environments without Web Bluetooth:
+        // If Android, send raw ESC/POS to RawBT bluetooth thermal service, and also provide system print
+        const platform = thermalPrinter.getPlatformInfo();
+        if (platform.isAndroid) {
+          const rawRes = thermalPrinter.printViaRawBt(escPosBytes);
+          toast.info(rawRes.message, { icon: '📱' });
+        } else {
+          toast.info('Opening system print spooler for your printer...', { icon: '🖨️' });
+          handleSystemPrint();
         }
       }
     } catch (err: any) {
-      toast.error('Bluetooth error: ' + (err.message || String(err)));
+      toast.error('Bluetooth print error: ' + (err.message || String(err)));
     } finally {
       setIsPrinting(false);
     }
@@ -183,12 +194,6 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
 
   // System Print (PDF / AirPrint / Laser / Bluetooth via OS)
   const handleSystemPrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-
     const html = `
       <!DOCTYPE html>
       <html>
@@ -291,12 +296,8 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
       </html>
     `;
 
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    toast.info('Opening Print Spooler...', { icon: '🖨️' });
+    thermalPrinter.printViaSystem(html, bill.billNumber);
   };
 
   // Convert escPosBytes to Hex preview string
@@ -610,10 +611,11 @@ export const ThermalReceipt: React.FC<ThermalReceiptProps> = ({ bill, onClose })
           <div className="mt-2.5 grid grid-cols-3 gap-2">
             <button
               onClick={handleSystemPrint}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-secondary/80 py-2.5 text-xs font-bold text-foreground hover:bg-muted active:scale-95 transition border border-border/50"
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-accent text-white py-2.5 text-xs font-bold hover:opacity-95 active:scale-95 transition shadow-xs"
+              title="Print via Android Print Spooler / System Printer"
             >
-              <Printer className="h-3.5 w-3.5 text-foreground/80" />
-              <span>PDF</span>
+              <Printer className="h-3.5 w-3.5 text-white" />
+              <span>Print Bill</span>
             </button>
 
             <button

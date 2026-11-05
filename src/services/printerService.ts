@@ -56,6 +56,86 @@ class ThermalPrinterService {
     return typeof navigator !== 'undefined' && 'serial' in navigator;
   }
 
+  isNativeAndroidApp(): boolean {
+    if (typeof window === 'undefined') return false;
+    const win = window as any;
+    return !!(win.AndroidNativePrinter || (win.Capacitor && win.Capacitor.isNativePlatform()));
+  }
+
+  printViaSystem(html: string, jobName: string = 'ServeJoy_Bill'): void {
+    if (typeof window === 'undefined') return;
+    const win = window as any;
+
+    // 1. If running inside Android APK with native print interface
+    if (win.AndroidNativePrinter && typeof win.AndroidNativePrinter.printBill === 'function') {
+      try {
+        win.AndroidNativePrinter.printBill(jobName);
+        return;
+      } catch (err) {
+        console.warn('Native Android printer error, falling back to iframe:', err);
+      }
+    }
+
+    // 2. Invisible iframe print (works smoothly on mobile browsers & WebViews without popup blocking)
+    try {
+      const existing = document.getElementById('servejoy-print-iframe');
+      if (existing) existing.remove();
+
+      const iframe = document.createElement('iframe');
+      iframe.id = 'servejoy-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.top = '-9999px';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
+      iframe.style.opacity = '0';
+      iframe.style.pointerEvents = 'none';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(html);
+        doc.close();
+
+        setTimeout(() => {
+          try {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+          } catch (e) {
+            console.warn('Iframe print error, falling back to window.print():', e);
+            window.print();
+          } finally {
+            setTimeout(() => {
+              iframe.remove();
+            }, 6000);
+          }
+        }, 350);
+        return;
+      }
+    } catch (e) {
+      console.warn('Iframe print failed, falling back:', e);
+    }
+
+    // 3. Direct window.print() fallback
+    window.print();
+  }
+
+  printViaRawBt(escPosBytes: Uint8Array): { success: boolean; message: string } {
+    try {
+      let binary = '';
+      for (let i = 0; i < escPosBytes.length; i++) {
+        binary += String.fromCharCode(escPosBytes[i]);
+      }
+      const b64 = btoa(binary);
+      const rawBtUri = `rawbt:data:application/octet-stream;base64,${b64}`;
+      window.location.href = rawBtUri;
+      return { success: true, message: 'Sent to Bluetooth Thermal Print service (RawBT)!' };
+    } catch (e: any) {
+      return { success: false, message: 'Bluetooth thermal dispatch failed: ' + (e.message || String(e)) };
+    }
+  }
+
   getPlatformInfo(): { isIOS: boolean; isAndroid: boolean; browserName: string; hasSerial: boolean } {
     if (typeof navigator === 'undefined') {
       return { isIOS: false, isAndroid: false, browserName: 'Unknown', hasSerial: false };

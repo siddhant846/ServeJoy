@@ -74,13 +74,44 @@ export const PrinterManagerModal: React.FC<PrinterManagerModalProps> = ({ isOpen
   const handleTestPrint = async (printer: Printer) => {
     setTestingId(printer.id);
     try {
-      const testBytes = thermalPrinter.buildTestEscPos(cafeProfile, printer.paperWidth);
-      const res = await thermalPrinter.printEscPosBytes(testBytes, printer.name);
+      if (thermalPrinter.isBluetoothSupported()) {
+        const testBytes = thermalPrinter.buildTestEscPos(cafeProfile, printer.paperWidth);
+        const res = await thermalPrinter.printEscPosBytes(testBytes, printer.name);
 
-      if (res.success) {
-        toast.success(res.message, { icon: '🖨️' });
+        if (res.success) {
+          toast.success(res.message, { icon: '🖨️' });
+        } else {
+          toast.error(res.errorReason || res.message || 'Test print failed.');
+        }
       } else {
-        toast.error(res.errorReason || res.message || 'Test print failed.');
+        // Fallback for Android & Mobile: Test via Android System Print Spooler
+        const testHtml = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Test Print - ${cafeProfile.name}</title>
+              <style>
+                @page { margin: 0; size: ${printer.paperWidth} auto; }
+                body { font-family: monospace; width: ${printer.paperWidth}; padding: 8px; font-size: 11px; text-align: center; color: #000; background: #fff; }
+                .divider { border-bottom: 1px dashed #000; margin: 6px 0; }
+                .bold { font-weight: bold; }
+              </style>
+            </head>
+            <body>
+              <div class="bold" style="font-size: 14px;">${cafeProfile.name}</div>
+              <p>*** TEST PRINT SUCCESSFUL ***</p>
+              <div class="divider"></div>
+              <p>Printer: ${printer.name}</p>
+              <p>Paper Width: ${printer.paperWidth}</p>
+              <p>Date: ${new Date().toLocaleString()}</p>
+              <div class="divider"></div>
+              <p>Thermal Printer Spooler is Ready!</p>
+              <p>Powered by ServeJoy POS</p>
+            </body>
+          </html>
+        `;
+        toast.info('Opening Print Spooler for test print...', { icon: '🖨️' });
+        thermalPrinter.printViaSystem(testHtml, 'ServeJoy_Test_Receipt');
       }
     } catch (err: any) {
       toast.error('Print error: ' + (err.message || String(err)));
@@ -154,12 +185,16 @@ export const PrinterManagerModal: React.FC<PrinterManagerModalProps> = ({ isOpen
               </div>
             </div>
           ) : (
-            <div className="flex items-start gap-2 rounded-2xl bg-amber-500/10 p-3 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
-              <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-              <div>
-                <p className="font-bold">Web Bluetooth Not Detected</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Please use Google Chrome, Microsoft Edge, or the Android app for direct Bluetooth printing.
+            <div className="flex items-start gap-2.5 rounded-2xl bg-emerald-500/10 p-3 border border-emerald-500/25 text-xs text-foreground">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-foreground">Android Thermal Printing Ready</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Your paired Bluetooth or Wi-Fi thermal printer (MPT-II, POS-58, Sunmi) connects automatically through the <strong>Android Print Spooler</strong>.
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  1. Pair in phone <strong>Settings ➔ Bluetooth</strong>.<br />
+                  2. Tap <strong>&quot;Print Bill&quot;</strong> on any receipt to print immediately.
                 </p>
               </div>
             </div>
@@ -270,24 +305,41 @@ export const PrinterManagerModal: React.FC<PrinterManagerModalProps> = ({ isOpen
         <div className="mt-4 pt-3 border-t border-border space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
-              onClick={handleScanAndPair}
-              disabled={isScanning}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-accent py-3 px-2 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-98 disabled:opacity-50"
+              onClick={() => {
+                if (activePrinter) {
+                  handleTestPrint(activePrinter);
+                } else if (printers.length > 0) {
+                  handleTestPrint(printers[0]);
+                } else {
+                  const defaultP = addPrinter('Thermal 58mm Printer', '58mm');
+                  handleTestPrint(defaultP);
+                }
+              }}
+              className="flex items-center justify-center gap-2 rounded-2xl bg-accent py-3 px-2 text-xs font-bold text-white shadow-md hover:bg-accent/90 transition active:scale-98"
             >
-              {isScanning ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Scanning BLE...</span>
-                </>
-              ) : (
-                <>
-                  <Bluetooth className="h-4 w-4" />
-                  <span>Pair Bluetooth (BLE)</span>
-                </>
-              )}
+              <PrinterIcon className="h-4 w-4" />
+              <span>Test Print (Thermal/OS)</span>
             </button>
 
-            {isSerialSupported && (
+            {isBleSupported ? (
+              <button
+                onClick={handleScanAndPair}
+                disabled={isScanning}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-secondary py-3 px-2 text-xs font-bold text-foreground border border-border shadow-sm hover:bg-muted transition active:scale-98 disabled:opacity-50"
+              >
+                {isScanning ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Scanning BLE...</span>
+                  </>
+                ) : (
+                  <>
+                    <Bluetooth className="h-4 w-4 text-accent" />
+                    <span>Pair Bluetooth (BLE)</span>
+                  </>
+                )}
+              </button>
+            ) : isSerialSupported ? (
               <button
                 onClick={handlePairSerial}
                 disabled={isScanning}
@@ -296,11 +348,11 @@ export const PrinterManagerModal: React.FC<PrinterManagerModalProps> = ({ isOpen
               >
                 <span>🔌 Connect COM / USB</span>
               </button>
-            )}
+            ) : null}
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center leading-tight pt-1">
-            💡 <strong>Paired MPT-II in Windows?</strong> Windows connects it as a COM port. Click <em>Connect COM / USB</em>, or configure it in <em>Manual Add</em> below.
+            💡 <strong>Bluetooth Printer:</strong> Ensure Bluetooth is turned on and your thermal printer is paired in phone Settings.
           </p>
 
           {/* Toggle Manual Add */}
