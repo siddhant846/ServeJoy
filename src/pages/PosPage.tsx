@@ -88,7 +88,11 @@ export const PosPage: React.FC = () => {
 
     const subInfo = subscriptionService.getSubscriptionInfo(bill.businessId);
     if (!subInfo.canBill) {
-      toast.error('Monthly bill limit reached on Starter Plan (100 bills). Please upgrade to Pro for unlimited billing.');
+      if (subInfo.isExpired) {
+        toast.error('Your subscription or trial has expired. Please renew your plan in Settings to continue billing.');
+      } else {
+        toast.error('Monthly bill limit reached on Starter Plan (100 bills). Please upgrade to Pro for unlimited billing.');
+      }
       setIsSettingsModalOpen(true);
       return;
     }

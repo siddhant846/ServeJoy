@@ -158,3 +158,4 @@ export const PosSidebarDrawer: React.FC<PosSidebarDrawerProps> = ({
     </div>
   );
 };
+

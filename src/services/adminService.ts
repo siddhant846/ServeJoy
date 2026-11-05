@@ -1,6 +1,7 @@
 import { BusinessAccount, CafeProfile, SubscriptionDetails, SubscriptionTier, BillingCycle } from '../types';
 import { storage, DEFAULT_BUSINESS_ACCOUNT, DEFAULT_MENU_ITEMS, createDefaultSubscription } from './storage';
 import { subscriptionService, PLANS } from './subscriptionService';
+import { cloudSync } from './cloudSync';
 
 export interface TenantSummary {
   account: BusinessAccount;
@@ -128,7 +129,9 @@ class AdminService {
     if (account) {
       account.subscription = subscription;
       storage.saveBusinessAccount(account);
+      cloudSync.pushBusinessAccount(account);
     }
+    cloudSync.pushSubscription(subscription, businessId);
 
     return subscription;
   }
@@ -148,6 +151,16 @@ class AdminService {
       profile.subscriptionTier = tier;
       storage.saveCafeProfile(profile, businessId);
     }
+
+    // Sync to Cloud Firestore so the user's phone / computer receives the upgrade in real-time
+    const account = storage.getBusinessAccount(businessId);
+    if (account) {
+      account.subscription = sub;
+      storage.saveBusinessAccount(account);
+      cloudSync.pushBusinessAccount(account);
+    }
+    cloudSync.pushSubscription(sub, businessId);
+
     return sub;
   }
 
@@ -216,6 +229,8 @@ class AdminService {
 
     storage.saveBusinessAccount(account);
     storage.saveSubscription(sub, businessId);
+    cloudSync.pushBusinessAccount(account);
+    cloudSync.pushSubscription(sub, businessId);
 
     // Initial Cafe Profile
     storage.saveCafeProfile(

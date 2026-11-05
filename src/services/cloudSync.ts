@@ -1,4 +1,4 @@
-import { Order, WaiterRequest, Bill, CloudSyncStatus, MenuItem, RestaurantTable } from '../types';
+import { Order, WaiterRequest, Bill, CloudSyncStatus, MenuItem, RestaurantTable, SubscriptionDetails, BusinessAccount, CafeProfile } from '../types';
 import { storage } from './storage';
 
 const FIREBASE_PROJECT = 'servejoy-pos-live';
@@ -235,6 +235,86 @@ class CloudSyncEngine {
     return null;
   }
 
+  async pushSubscription(sub: SubscriptionDetails, businessId?: string): Promise<boolean> {
+    if (!this.status.isOnline) return false;
+    try {
+      const bizId = businessId || storage.getActiveBusinessId();
+      const cleanBizId = bizId.replace(/[^a-zA-Z0-9_]/g, '_');
+      const url = `${FIRESTORE_BASE}/servejoy_platform_subscriptions/${cleanBizId}?key=${FIREBASE_KEY}`;
+      const doc = this.makeDocument(cleanBizId, sub, 'subscription');
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc),
+      });
+      return res.ok;
+    } catch (err: any) {
+      console.warn('[CloudSync] pushSubscription error:', err);
+    }
+    return false;
+  }
+
+  async pullSubscription(businessId?: string): Promise<SubscriptionDetails | null> {
+    try {
+      const bizId = businessId || storage.getActiveBusinessId();
+      const cleanBizId = bizId.replace(/[^a-zA-Z0-9_]/g, '_');
+      const url = `${FIRESTORE_BASE}/servejoy_platform_subscriptions/${cleanBizId}?key=${FIREBASE_KEY}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const payloadStr = data.fields?.payload?.stringValue;
+        if (payloadStr) {
+          return JSON.parse(payloadStr);
+        }
+      }
+    } catch (err: any) {
+      console.warn('[CloudSync] pullSubscription error:', err);
+    }
+    return null;
+  }
+
+  async pushBusinessAccount(account: BusinessAccount): Promise<boolean> {
+    if (!this.status.isOnline) return false;
+    try {
+      const cleanBizId = account.id.replace(/[^a-zA-Z0-9_]/g, '_');
+      const url = `${FIRESTORE_BASE}/servejoy_platform_businesses/${cleanBizId}?key=${FIREBASE_KEY}`;
+      const doc = this.makeDocument(cleanBizId, account, 'business_account');
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc),
+      });
+      return res.ok;
+    } catch (err: any) {
+      console.warn('[CloudSync] pushBusinessAccount error:', err);
+    }
+    return false;
+  }
+
+  async pullAllBusinesses(): Promise<BusinessAccount[] | null> {
+    try {
+      const url = `${FIRESTORE_BASE}/servejoy_platform_businesses?pageSize=100&key=${FIREBASE_KEY}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const documents = data.documents || [];
+        const accounts: BusinessAccount[] = [];
+        for (const doc of documents) {
+          const payloadStr = doc.fields?.payload?.stringValue;
+          if (payloadStr) {
+            try {
+              accounts.push(JSON.parse(payloadStr));
+            } catch {}
+          }
+        }
+        return accounts;
+      }
+    } catch (err: any) {
+      console.warn('[CloudSync] pullAllBusinesses error:', err);
+    }
+    return null;
+  }
+
   async pullRemoteData(): Promise<{ newOrders: Order[]; newRequests: WaiterRequest[] }> {
     if (!this.status.isOnline) return { newOrders: [], newRequests: [] };
 
@@ -329,6 +409,37 @@ class CloudSyncEngine {
           storage.saveWaiterRequests(mergedReqs);
           window.dispatchEvent(new Event('servejoy_sync'));
         }
+      }
+
+      // 3. Fetch latest Subscription for active business (Real-time plan upgrades from Super Admin)
+      try {
+        const cleanBizId = bizId.replace(/[^a-zA-Z0-9_]/g, '_');
+        const subUrl = `${FIRESTORE_BASE}/servejoy_platform_subscriptions/${cleanBizId}?key=${FIREBASE_KEY}`;
+        const subRes = await fetch(subUrl);
+        if (subRes.ok) {
+          const subData = await subRes.json();
+          const subStr = subData.fields?.payload?.stringValue;
+          if (subStr) {
+            const remoteSub: SubscriptionDetails = JSON.parse(subStr);
+            const localSub = storage.getSubscription(bizId);
+            if (
+              remoteSub.tier !== localSub.tier ||
+              remoteSub.status !== localSub.status ||
+              remoteSub.currentPeriodEnd !== localSub.currentPeriodEnd
+            ) {
+              storage.saveSubscription(remoteSub, bizId);
+              const profile = storage.getCafeProfile(bizId);
+              if (profile) {
+                profile.subscriptionTier = remoteSub.tier;
+                storage.saveCafeProfile(profile, bizId);
+              }
+              window.dispatchEvent(new Event('servejoy_sync'));
+              window.dispatchEvent(new Event('servejoy_subscription_updated'));
+            }
+          }
+        }
+      } catch (subErr) {
+        // Non-blocking
       }
 
       this.status.lastSyncedAt = new Date();

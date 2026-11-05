@@ -134,8 +134,21 @@ class SubscriptionService {
       }
     }
 
+    const isPaidPlan = subscription.tier === 'pro' || subscription.tier === 'business';
     const isTrial = subscription.tier === 'starter';
-    const canBill = !isExpired && (subscription.billsThisMonth < subscription.maxBillsPerMonth);
+
+    // Auto-heal serialized null values from JSON
+    if (isPaidPlan) {
+      if (subscription.maxBillsPerMonth === null || subscription.maxBillsPerMonth === undefined) {
+        subscription.maxBillsPerMonth = 999999;
+      }
+      if (subscription.maxDevices === null || subscription.maxDevices === undefined) {
+        subscription.maxDevices = subscription.tier === 'business' ? 999999 : 3;
+      }
+    }
+
+    const isUnlimitedBills = isPaidPlan || !subscription.maxBillsPerMonth || subscription.maxBillsPerMonth >= 99999;
+    const canBill = !isExpired && (isUnlimitedBills || subscription.billsThisMonth < subscription.maxBillsPerMonth);
 
     return {
       subscription,
@@ -169,16 +182,24 @@ class SubscriptionService {
       currentPeriodStart: now.toISOString(),
       currentPeriodEnd: periodEnd.toISOString(),
       billsThisMonth: 0,
-      maxBillsPerMonth: Infinity,
-      maxDevices: tier === 'pro' ? 3 : Infinity,
+      maxBillsPerMonth: tier === 'starter' ? 100 : 999999, // Use safe numeric upper bound instead of Infinity so JSON.stringify preserves it
+      maxDevices: tier === 'starter' ? 1 : tier === 'pro' ? 3 : 999999,
     };
 
     storage.saveSubscription(updated, businessId);
 
     // Also update cafeProfile subscription tier
     const profile = storage.getCafeProfile(businessId);
-    profile.subscriptionTier = tier;
-    storage.saveCafeProfile(profile, businessId);
+    if (profile) {
+      profile.subscriptionTier = tier;
+      storage.saveCafeProfile(profile, businessId);
+    }
+
+    // Trigger instant UI re-render across listening components
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('servejoy_sync'));
+      window.dispatchEvent(new Event('servejoy_subscription_updated'));
+    }
 
     return updated;
   }
@@ -188,10 +209,11 @@ class SubscriptionService {
    */
   incrementBillCount(businessId?: string): boolean {
     const sub = storage.getSubscription(businessId);
-    if (sub.billsThisMonth >= sub.maxBillsPerMonth) {
+    const isUnlimited = sub.tier === 'pro' || sub.tier === 'business' || !sub.maxBillsPerMonth || sub.maxBillsPerMonth >= 99999;
+    if (!isUnlimited && sub.billsThisMonth >= sub.maxBillsPerMonth) {
       return false;
     }
-    sub.billsThisMonth += 1;
+    sub.billsThisMonth = (sub.billsThisMonth || 0) + 1;
     storage.saveSubscription(sub, businessId);
     return true;
   }

@@ -1,6 +1,7 @@
 import { AuthUser, BusinessAccount, UserRole, Staff } from '../types';
 import { storage, createDefaultSubscription, DEFAULT_BUSINESS_ACCOUNT } from './storage';
 import { signInWithGoogleReal, checkRedirectResult, firebaseLogout } from './firebase';
+import { cloudSync } from './cloudSync';
 
 export interface LoginResult {
   success: boolean;
@@ -113,6 +114,8 @@ class AuthService {
       storage.saveBusinessAccount(newAccount);
       storage.setActiveBusinessId(businessId);
       storage.saveSubscription(subscription, businessId);
+      cloudSync.pushBusinessAccount(newAccount);
+      cloudSync.pushSubscription(subscription, businessId);
 
       // Create initial cafe profile
       storage.saveCafeProfile(

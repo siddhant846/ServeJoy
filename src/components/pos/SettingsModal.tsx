@@ -1581,8 +1581,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="p-2.5 rounded-xl bg-secondary/50">
                     <p className="text-[10px] text-muted-foreground">Monthly Bills</p>
                     <p className="font-bold text-foreground">
-                      {subInfo.subscription.billsThisMonth} /{' '}
-                      {subInfo.subscription.maxBillsPerMonth === Infinity
+                      {subInfo.subscription.billsThisMonth || 0} /{' '}
+                      {subInfo.subscription.tier === 'pro' || subInfo.subscription.tier === 'business' || !subInfo.subscription.maxBillsPerMonth || subInfo.subscription.maxBillsPerMonth >= 99999
                         ? 'Unlimited'
                         : subInfo.subscription.maxBillsPerMonth}
                     </p>
@@ -1590,7 +1590,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="p-2.5 rounded-xl bg-secondary/50 col-span-2 sm:col-span-1">
                     <p className="text-[10px] text-muted-foreground">Active Terminals</p>
                     <p className="font-bold text-foreground">
-                      {subInfo.subscription.maxDevices === Infinity
+                      {subInfo.subscription.tier === 'business' || !subInfo.subscription.maxDevices || subInfo.subscription.maxDevices >= 99999
                         ? 'Unlimited Devices'
                         : `Up to ${subInfo.subscription.maxDevices} Devices`}
                     </p>

@@ -220,14 +220,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setOrders(storage.getOrders());
       setWaiterRequests(storage.getWaiterRequests());
       setBills(storage.getBills());
+      setCafeProfile(storage.getCafeProfile());
     };
     window.addEventListener('servejoy_sync', onSyncEvent);
+    window.addEventListener('servejoy_subscription_updated', onSyncEvent);
 
     return () => {
       unsubStatus();
       unsubNewData();
       cloudSync.stop();
       window.removeEventListener('servejoy_sync', onSyncEvent);
+      window.removeEventListener('servejoy_subscription_updated', onSyncEvent);
     };
   }, []);
 

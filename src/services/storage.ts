@@ -346,8 +346,8 @@ export const createDefaultSubscription = (tier: SubscriptionTier = 'starter'): S
     currentPeriodStart: now.toISOString(),
     currentPeriodEnd: periodEnd.toISOString(),
     billsThisMonth: 0,
-    maxBillsPerMonth: tier === 'starter' ? 100 : Infinity,
-    maxDevices: tier === 'starter' ? 1 : tier === 'pro' ? 3 : Infinity,
+    maxBillsPerMonth: tier === 'starter' ? 100 : 999999,
+    maxDevices: tier === 'starter' ? 1 : tier === 'pro' ? 3 : 999999,
   };
 };
 
@@ -454,7 +454,29 @@ export const storage = {
     try {
       const scopedKey = this.getScopedKey('subscription', bizId);
       const data = localStorage.getItem(scopedKey);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        // Auto-heal serialized null values from JSON
+        if (parsed.tier === 'pro' || parsed.tier === 'business') {
+          let healed = false;
+          if (parsed.maxBillsPerMonth === null || parsed.maxBillsPerMonth === undefined) {
+            parsed.maxBillsPerMonth = 999999;
+            healed = true;
+          }
+          if (parsed.tier === 'business' && (parsed.maxDevices === null || parsed.maxDevices === undefined)) {
+            parsed.maxDevices = 999999;
+            healed = true;
+          }
+          if (parsed.tier === 'pro' && (parsed.maxDevices === null || parsed.maxDevices === undefined)) {
+            parsed.maxDevices = 3;
+            healed = true;
+          }
+          if (healed) {
+            this.saveSubscription(parsed, bizId);
+          }
+        }
+        return parsed;
+      }
 
       const acc = this.getBusinessAccount(bizId);
       if (acc?.subscription) {

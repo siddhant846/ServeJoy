@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { adminService, TenantSummary, PlatformStats } from '../services/adminService';
 import { authService } from '../services/authService';
 import { storage } from '../services/storage';
+import { cloudSync } from '../services/cloudSync';
 import { SubscriptionTier, BillingCycle } from '../types';
 import {
   ShieldAlert,
@@ -68,6 +69,25 @@ export const SuperAdminPage: React.FC = () => {
     setTenants(adminService.getAllTenants());
     setStats(adminService.getPlatformStats());
   };
+
+  useEffect(() => {
+    // Pull any registered remote tenants from Cloud Firestore
+    cloudSync.pullAllBusinesses().then((remoteBizList) => {
+      if (remoteBizList && remoteBizList.length > 0) {
+        let changed = false;
+        remoteBizList.forEach((remote) => {
+          const local = storage.getBusinessAccount(remote.id);
+          if (!local) {
+            storage.saveBusinessAccount(remote);
+            changed = true;
+          }
+        });
+        if (changed) {
+          refreshData();
+        }
+      }
+    });
+  }, []);
 
   // Filtered tenants list
   const filteredTenants = useMemo(() => {
