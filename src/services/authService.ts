@@ -1,6 +1,7 @@
 import { AuthUser, BusinessAccount, UserRole, Staff } from '../types';
 import { storage, createDefaultSubscription, DEFAULT_BUSINESS_ACCOUNT } from './storage';
-import { signInWithGoogleReal, checkRedirectResult, firebaseLogout } from './firebase';
+import { signInWithGoogleReal, checkRedirectResult, firebaseLogout, auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { cloudSync } from './cloudSync';
 
 export interface LoginResult {
@@ -26,6 +27,27 @@ class AuthService {
 
   constructor() {
     this.currentUser = storage.getAuthUser();
+
+    // Listen to Firebase auth state changes (catches OAuth redirect logins and session restores automatically)
+    if (typeof window !== 'undefined') {
+      try {
+        onAuthStateChanged(auth, async (fbUser) => {
+          if (fbUser && fbUser.email) {
+            const current = this.getCurrentUser();
+            if (!current || current.email.toLowerCase() !== fbUser.email.toLowerCase()) {
+              await this.loginOwner(
+                fbUser.email,
+                fbUser.uid,
+                fbUser.photoURL || undefined,
+                fbUser.displayName || undefined
+              );
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Auth state listener init notice:', e);
+      }
+    }
   }
 
   getCurrentUser(): AuthUser | null {

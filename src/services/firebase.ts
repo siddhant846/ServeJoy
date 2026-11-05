@@ -7,12 +7,30 @@ import {
   getRedirectResult,
   signOut as fbSignOut,
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
   User as FirebaseUser,
 } from 'firebase/auth';
 
+// Dynamically resolve authDomain to eliminate cross-site storage partitioning errors.
+// When accessing via servejoy-pos-live.web.app, using servejoy-pos-live.web.app as authDomain
+// ensures sessionStorage & OAuth state reside on the EXACT same origin as the application.
+const getDynamicAuthDomain = (): string => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.includes('web.app')) {
+      return host;
+    }
+    if (host.includes('firebaseapp.com')) {
+      return host;
+    }
+  }
+  return 'servejoy-pos-live.web.app';
+};
+
 const firebaseConfig = {
   apiKey: 'AIzaSyB5Gg4T2hIHtqXHjiqT1H63W6ZkIBxxqZw',
-  authDomain: 'servejoy-pos-live.firebaseapp.com',
+  authDomain: getDynamicAuthDomain(),
   projectId: 'servejoy-pos-live',
   storageBucket: 'servejoy-pos-live.firebasestorage.app',
   messagingSenderId: '289924631895',
@@ -21,6 +39,14 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
+
+// Explicitly configure browserLocalPersistence so auth credentials and redirect state
+// survive across mobile tab changes, redirects, and browser restarts.
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserLocalPersistence).catch((err) => {
+    console.warn('Firebase persistence warning:', err);
+  });
+}
 
 export const googleProvider = new GoogleAuthProvider();
 // Force Google to show the account picker screen so the user can choose which Google account to use

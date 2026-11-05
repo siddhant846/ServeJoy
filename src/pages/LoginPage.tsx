@@ -63,6 +63,8 @@ export const LoginPage: React.FC = () => {
       if (res.success) {
         toast.success(`Welcome to ServeJoy, ${res.user?.displayName || 'Partner'}!`, { icon: '🎉' });
         navigate('/');
+      } else if (res.error?.includes('Redirecting')) {
+        toast.info('Opening Google Sign-In...', { icon: '🔄' });
       } else {
         if (
           res.error?.includes('configuration-not-found') ||
