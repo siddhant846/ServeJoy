@@ -16,7 +16,9 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
   }
 
   if (!authService.isSuperAdmin(user)) {
-    toast.error('Access Restricted: Only ServeJoy platform administrator can view this console.');
+    toast.error('Access Restricted: Only platform owner (ramtekekishor893@gmail.com) can access the Super Admin Console.', {
+      icon: '🛡️',
+    });
     return <Navigate to="/" replace />;
   }
 

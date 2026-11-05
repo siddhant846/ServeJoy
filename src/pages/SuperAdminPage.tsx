@@ -217,7 +217,7 @@ export const SuperAdminPage: React.FC = () => {
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground font-mono">
-                Admin: {currentUser?.email || 'siddhant'}
+                Admin: {currentUser?.email || 'ramtekekishor893@gmail.com'}
               </p>
             </div>
           </div>

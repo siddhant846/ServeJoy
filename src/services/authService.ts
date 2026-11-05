@@ -41,20 +41,13 @@ class AuthService {
 
   /**
    * Checks if current user has Super Admin authority.
-   * Matches Siddhant's Google emails, demo account, or users designated as superadmin.
+   * STRICTLY RESTRICTED to ONLY: ramtekekishor893@gmail.com
    */
   isSuperAdmin(user?: AuthUser | null): boolean {
     const u = user || this.getCurrentUser();
     if (!u) return false;
     const email = (u.email || '').toLowerCase().trim();
-    const name = (u.displayName || '').toLowerCase().trim();
-    return (
-      email.includes('siddhant') ||
-      email.includes('chaipoint') ||
-      name.includes('siddhant') ||
-      (u.role === 'owner' && (email.endsWith('@gmail.com') || email.includes('admin'))) ||
-      (u as any).isSuperAdmin === true
-    );
+    return email === 'ramtekekishor893@gmail.com';
   }
 
   subscribe(listener: (user: AuthUser | null) => void): () => void {
@@ -208,8 +201,24 @@ class AuthService {
       const allBiz = storage.getAllBusinesses();
       let account = allBiz.find((b) => b.ownerEmail.toLowerCase() === cleanEmail);
 
-      // Recognize Siddhant / Chai Point account and bind their Google email
-      if (!account && (cleanEmail.includes('siddhant') || cleanEmail.includes('chaipoint') || (displayName && displayName.toLowerCase().includes('siddhant')))) {
+      // Recognize Super Admin Kishor Ramteke account
+      if (cleanEmail === 'ramtekekishor893@gmail.com') {
+        if (!account) {
+          account = {
+            id: 'biz_superadmin_master',
+            ownerId: googleUid || 'owner_ramtekekishor893',
+            ownerEmail: 'ramtekekishor893@gmail.com',
+            ownerName: displayName || 'Kishor Ramteke',
+            businessName: 'Chai Point',
+            createdAt: new Date().toISOString(),
+            subscription: createDefaultSubscription('business'),
+          };
+          storage.saveBusinessAccount(account);
+        }
+      }
+
+      // Recognize Demo account
+      if (!account && (cleanEmail.includes('siddhant') || cleanEmail.includes('chaipoint'))) {
         account = { ...DEFAULT_BUSINESS_ACCOUNT, ownerEmail: cleanEmail };
         if (displayName) account.ownerName = displayName;
         storage.saveBusinessAccount(account);
