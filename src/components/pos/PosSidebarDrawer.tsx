@@ -13,6 +13,7 @@ interface PosSidebarDrawerProps {
   onOpenSoundbox?: () => void;
   onOpenPrinter?: () => void;
   onOpenSettings?: () => void;
+  onOpenInstallApp?: () => void;
   homeSubTab?: 'pos' | 'floor';
   onHomeSubTabChange?: (subTab: 'pos' | 'floor') => void;
   isPinned?: boolean;
@@ -29,6 +30,7 @@ export const PosSidebarDrawer: React.FC<PosSidebarDrawerProps> = ({
   onOpenSoundbox,
   onOpenPrinter,
   onOpenSettings,
+  onOpenInstallApp,
   homeSubTab,
   onHomeSubTabChange,
   isPinned,
@@ -146,6 +148,10 @@ export const PosSidebarDrawer: React.FC<PosSidebarDrawerProps> = ({
             onOpenSettings={() => {
               onClose();
               onOpenSettings?.();
+            }}
+            onOpenInstallApp={() => {
+              onClose();
+              onOpenInstallApp?.();
             }}
             homeSubTab={homeSubTab}
             onHomeSubTabChange={(tab) => {

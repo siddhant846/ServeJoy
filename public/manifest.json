@@ -4,13 +4,13 @@
   "description": "Premium Café POS, KOT & QR ordering system",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/servejoy-logo.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/servejoy-logo.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
