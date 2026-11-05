@@ -3,14 +3,12 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signOut as fbSignOut,
-  onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
   User as FirebaseUser,
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyB5Gg4T2hIHtqXHjiqT1H63W6ZkIBxxqZw',
@@ -39,7 +37,9 @@ googleProvider.setCustomParameters({
 });
 
 /**
- * Triggers the REAL Google Account chooser popup synchronously to avoid popup blockers
+ * Triggers the REAL Google Account chooser popup synchronously to avoid popup blockers.
+ * In a native mobile app (Capacitor), WebViews block multi-window popups and cross-origin redirects;
+ * this function catches that cleanly so the mobile UI presents an in-app Google Account Picker.
  */
 export const signInWithGoogleReal = (): Promise<{
   uid: string;
@@ -47,6 +47,13 @@ export const signInWithGoogleReal = (): Promise<{
   displayName: string;
   photoURL?: string;
 }> => {
+  // If running inside native Android/iOS app, do not attempt web popups that corrupt WebView storage
+  if (Capacitor.isNativePlatform()) {
+    const mobileErr: any = new Error('auth/popup-blocked');
+    mobileErr.code = 'auth/popup-blocked';
+    return Promise.reject(mobileErr);
+  }
+
   // Call signInWithPopup immediately in the synchronous stack frame of user gesture
   return signInWithPopup(auth, googleProvider)
     .then((result) => {
@@ -66,20 +73,9 @@ export const signInWithGoogleReal = (): Promise<{
         throw new Error('Sign-In cancelled: Popup was closed.');
       }
       if (err.code === 'auth/popup-blocked') {
-        // If popup is blocked on mobile:
-        // If user is already on firebaseapp.com, signInWithRedirect works with zero storage partitioning issues
-        if (typeof window !== 'undefined' && window.location.hostname.includes('firebaseapp.com')) {
-          await signInWithRedirect(auth, googleProvider);
-          throw new Error('Redirecting to Google Sign-In...');
-        } else {
-          // If on web.app, navigate to firebaseapp.com where redirect is on the same origin as authDomain
-          if (typeof window !== 'undefined') {
-            window.location.href = 'https://servejoy-pos-live.firebaseapp.com/login';
-            throw new Error('Redirecting to secure login...');
-          }
-          await signInWithRedirect(auth, googleProvider);
-          throw new Error('Redirecting to Google Sign-In...');
-        }
+        const blockedErr: any = new Error('Google Sign-In popup was blocked by browser security.');
+        blockedErr.code = 'auth/popup-blocked';
+        throw blockedErr;
       }
       if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
         const configErr: any = new Error(
@@ -93,7 +89,7 @@ export const signInWithGoogleReal = (): Promise<{
 };
 
 /**
- * Check if the user just returned from a Google OAuth redirect
+ * Check if the user just returned from a Google OAuth redirect (safe fallback)
  */
 export const checkRedirectResult = async (): Promise<{
   uid: string;
@@ -101,21 +97,7 @@ export const checkRedirectResult = async (): Promise<{
   displayName: string;
   photoURL?: string;
 } | null> => {
-  try {
-    const result = await getRedirectResult(auth);
-    if (result && result.user && result.user.email) {
-      return {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName || result.user.email.split('@')[0],
-        photoURL: result.user.photoURL || undefined,
-      };
-    }
-    return null;
-  } catch (err) {
-    console.warn('Redirect auth check error:', err);
-    return null;
-  }
+  return null;
 };
 
 export const firebaseLogout = async (): Promise<void> => {

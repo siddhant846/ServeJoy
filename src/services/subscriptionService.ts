@@ -139,16 +139,29 @@ class SubscriptionService {
 
     // Auto-heal serialized null values from JSON
     if (isPaidPlan) {
-      if (subscription.maxBillsPerMonth === null || subscription.maxBillsPerMonth === undefined) {
+      if (!subscription.maxBillsPerMonth || subscription.maxBillsPerMonth < 99999) {
         subscription.maxBillsPerMonth = 999999;
       }
-      if (subscription.maxDevices === null || subscription.maxDevices === undefined) {
+      if (!subscription.maxDevices || subscription.maxDevices < 3) {
         subscription.maxDevices = subscription.tier === 'business' ? 999999 : 3;
+      }
+      // If a paid subscription period is still in the future, ensure it's not marked as expired
+      if (periodEnd > now && (subscription.status === 'trial_expired' || subscription.status === 'subscription_expired')) {
+        subscription.status = 'active';
+        storage.saveSubscription(subscription, businessId);
+      }
+    } else {
+      if (!subscription.maxBillsPerMonth) {
+        subscription.maxBillsPerMonth = 100;
+      }
+      if (!subscription.maxDevices) {
+        subscription.maxDevices = 1;
       }
     }
 
     const isUnlimitedBills = isPaidPlan || !subscription.maxBillsPerMonth || subscription.maxBillsPerMonth >= 99999;
-    const canBill = !isExpired && (isUnlimitedBills || subscription.billsThisMonth < subscription.maxBillsPerMonth);
+    const billLimit = subscription.maxBillsPerMonth || (isPaidPlan ? 999999 : 100);
+    const canBill = !isExpired && (isPaidPlan || isUnlimitedBills || (subscription.billsThisMonth || 0) < billLimit);
 
     return {
       subscription,

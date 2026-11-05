@@ -1589,7 +1589,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       {subInfo.subscription.billsThisMonth || 0} /{' '}
                       {subInfo.subscription.tier === 'pro' || subInfo.subscription.tier === 'business' || !subInfo.subscription.maxBillsPerMonth || subInfo.subscription.maxBillsPerMonth >= 99999
                         ? 'Unlimited'
-                        : subInfo.subscription.maxBillsPerMonth}
+                        : (subInfo.subscription.maxBillsPerMonth || 100)}
                     </p>
                   </div>
                   <div className="p-2.5 rounded-xl bg-secondary/50 col-span-2 sm:col-span-1">
@@ -1597,7 +1597,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <p className="font-bold text-foreground">
                       {subInfo.subscription.tier === 'business' || !subInfo.subscription.maxDevices || subInfo.subscription.maxDevices >= 99999
                         ? 'Unlimited Devices'
-                        : `Up to ${subInfo.subscription.maxDevices} Devices`}
+                        : `Up to ${subInfo.subscription.maxDevices || 1} Devices`}
                     </p>
                   </div>
                 </div>

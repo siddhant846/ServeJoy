@@ -24,6 +24,7 @@ import { PosSidebarDrawer } from '../components/pos/PosSidebarDrawer';
 import { AddDishModal } from '../components/pos/AddDishModal';
 import { AddTableModal } from '../components/pos/AddTableModal';
 import { Bill } from '../types';
+import { storage } from '../services/storage';
 import { subscriptionService } from '../services/subscriptionService';
 import { Utensils, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
@@ -86,17 +87,18 @@ export const PosPage: React.FC = () => {
       tableNumber: table,
     });
 
-    const subInfo = subscriptionService.getSubscriptionInfo(bill.businessId);
+    const activeBizId = bill.businessId || storage.getActiveBusinessId();
+    const subInfo = subscriptionService.getSubscriptionInfo(activeBizId);
     if (!subInfo.canBill) {
       if (subInfo.isExpired) {
         toast.error('Your subscription or trial has expired. Please renew your plan in Settings to continue billing.');
       } else {
-        toast.error('Monthly bill limit reached on Starter Plan (100 bills). Please upgrade to Pro for unlimited billing.');
+        toast.error(`Monthly bill limit reached on ${subInfo.subscription.tier.toUpperCase()} Plan. Please upgrade in Settings for unlimited billing.`);
       }
       setIsSettingsModalOpen(true);
       return;
     }
-    subscriptionService.incrementBillCount(bill.businessId);
+    subscriptionService.incrementBillCount(activeBizId);
 
     setSelectedBillForPrint(bill);
     toast.success(`${bill.billNumber} generated! Scan to Pay UPI QR is ready`, { icon: '🧾' });

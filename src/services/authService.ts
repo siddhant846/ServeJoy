@@ -226,6 +226,11 @@ class AuthService {
 
       // Recognize Super Admin Kishor Ramteke account
       if (cleanEmail === 'ramtekekishor893@gmail.com') {
+        const masterSub = createDefaultSubscription('business');
+        masterSub.status = 'active';
+        masterSub.maxBillsPerMonth = 999999;
+        masterSub.maxDevices = 999999;
+
         if (!account) {
           account = {
             id: 'biz_superadmin_master',
@@ -234,9 +239,17 @@ class AuthService {
             ownerName: displayName || 'Kishor Ramteke',
             businessName: 'Chai Point',
             createdAt: new Date().toISOString(),
-            subscription: createDefaultSubscription('business'),
+            subscription: masterSub,
           };
-          storage.saveBusinessAccount(account);
+        } else {
+          account.subscription = masterSub;
+        }
+        storage.saveBusinessAccount(account);
+        storage.saveSubscription(masterSub, account.id);
+        const profile = storage.getCafeProfile(account.id);
+        if (profile) {
+          profile.subscriptionTier = 'business';
+          storage.saveCafeProfile(profile, account.id);
         }
       }
 

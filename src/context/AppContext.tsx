@@ -539,8 +539,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const profit = finalTotal - totalCost;
 
     const nextBillNum = String(bills.length + 44).padStart(3, '0');
+    const currentBizId = storage.getActiveBusinessId();
     const newBill: Bill = {
       id: `bill_${Date.now()}`,
+      businessId: currentBizId,
       billNumber: `Bill #${nextBillNum}`,
       date: new Date().toISOString(),
       items: data.items,
