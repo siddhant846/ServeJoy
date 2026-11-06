@@ -26,6 +26,12 @@ def main():
         else:
             shutil.copy2(s, d)
 
+    # Sync capacitor.config.json
+    cap_src = os.path.join(base_dir, "capacitor.config.json")
+    cap_dst = os.path.join(extracted_dir, "assets", "capacitor.config.json")
+    if os.path.exists(cap_src):
+        shutil.copy2(cap_src, cap_dst)
+
     print("[2] Packaging extracted/ into ServeJoy-unsigned.apk...")
     if os.path.exists(unsigned_apk):
         os.remove(unsigned_apk)

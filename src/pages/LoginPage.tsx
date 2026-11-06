@@ -91,27 +91,6 @@ export const LoginPage: React.FC = () => {
 
   // Handle REAL Google OAuth Sign-In / Sign-Up
   const handleGoogleAuth = () => {
-    // If inside native Android APK, give user instant 1-tap Super Admin sign-in without WebView popup crashes
-    if (Capacitor.isNativePlatform()) {
-      setIsLoading(true);
-      authService
-        .loginOwner('ramtekekishor893@gmail.com', 'owner_ramtekekishor893', undefined, 'Kishor Ramteke')
-        .then((res) => {
-          setIsLoading(false);
-          if (res.success) {
-            toast.success('Welcome back, Kishor Ramteke!', { icon: '🎉' });
-            navigate('/', { replace: true });
-          } else {
-            toast.error(res.error || 'Failed to authenticate.');
-          }
-        })
-        .catch((err) => {
-          setIsLoading(false);
-          toast.error(err.message || 'Login failed.');
-        });
-      return;
-    }
-
     setIsLoading(true);
     authService
       .loginWithGoogle()

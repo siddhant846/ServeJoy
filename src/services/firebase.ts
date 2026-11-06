@@ -57,11 +57,10 @@ export const signInWithGoogleReal = async (): Promise<{
 }> => {
   // Mobile devices: use same-tab redirect flow to prevent blank popup tabs
   if (isMobileDevice()) {
-    // If user is on any other web origin (e.g. web.app), redirect to firebaseapp.com first
+    // If user is on any other origin (e.g. web.app or localhost), redirect to firebaseapp.com first so origin matches authDomain exactly
     if (
       typeof window !== 'undefined' &&
-      !window.location.hostname.includes('firebaseapp.com') &&
-      !window.location.hostname.includes('localhost')
+      !window.location.hostname.includes('firebaseapp.com')
     ) {
       window.location.href = 'https://servejoy-pos-live.firebaseapp.com/login?auth=start_google';
       throw new Error('Redirecting to Google Sign-In...');

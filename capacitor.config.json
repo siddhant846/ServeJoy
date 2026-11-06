@@ -3,7 +3,7 @@
 	"appName": "ServeJoy",
 	"webDir": "dist",
 	"server": {
-		"androidScheme": "https",
+		"url": "https://servejoy-pos-live.firebaseapp.com",
 		"cleartext": true
 	},
 	"android": {
