@@ -1,6 +1,6 @@
 import { AuthUser, BusinessAccount, UserRole, Staff } from '../types';
 import { storage, createDefaultSubscription, DEFAULT_BUSINESS_ACCOUNT } from './storage';
-import { signInWithGoogleReal, checkRedirectResult, firebaseLogout, auth } from './firebase';
+import { signInWithGoogleReal, signInWithGoogleIdToken, checkRedirectResult, firebaseLogout, auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { cloudSync } from './cloudSync';
 
@@ -192,6 +192,24 @@ class AuthService {
       .catch((err: any) => {
         return { success: false, error: err.message || 'Google Sign-In failed' };
       });
+  }
+
+  /**
+   * Login with Google ID Token (from Google Identity Services or native Credential Manager)
+   * Avoids sessionStorage partitioning and redirect state loss entirely.
+   */
+  async loginWithGoogleToken(idToken: string): Promise<LoginResult> {
+    try {
+      const googleUser = await signInWithGoogleIdToken(idToken);
+      return this.loginOwner(
+        googleUser.email,
+        googleUser.uid,
+        googleUser.photoURL,
+        googleUser.displayName
+      );
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Google token sign-in failed' };
+    }
   }
 
   /**

@@ -4,12 +4,16 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
+  signInWithCredential,
   getRedirectResult,
   signOut as fbSignOut,
   setPersistence,
   browserLocalPersistence,
   User as FirebaseUser,
 } from 'firebase/auth';
+
+export const GOOGLE_CLIENT_ID =
+  '289924631895-oj8kctqscscjf11ar9ecdug7ul8iektr.apps.googleusercontent.com';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyB5Gg4T2hIHtqXHjiqT1H63W6ZkIBxxqZw',
@@ -43,11 +47,34 @@ export const isMobileDevice = (): boolean => {
 };
 
 /**
- * Triggers the authentic Google Account chooser.
- * On mobile devices (Android/iOS), mobile browsers (Chrome/Safari) convert popup windows into tabs
- * which sever window.opener, leaving the auth handler frozen on a blank white page.
- * We invoke signInWithRedirect directly on mobile to ensure clean in-tab execution, and
- * signInWithPopup on desktop where popups are natively managed.
+ * Sign in to Firebase Authentication using a Google ID Token
+ * (obtained via Google Identity Services or native Credential Manager)
+ */
+export const signInWithGoogleIdToken = async (
+  idToken: string
+): Promise<{
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+}> => {
+  const credential = GoogleAuthProvider.credential(idToken);
+  const result = await signInWithCredential(auth, credential);
+  const user = result.user;
+  if (!user.email) {
+    throw new Error('No email found on your Google Account.');
+  }
+  return {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName || user.email.split('@')[0],
+    photoURL: user.photoURL || undefined,
+  };
+};
+
+/**
+ * Triggers Google Authentication for Web Browsers.
+ * Uses Google Identity Services / popup flow to avoid mobile storage-partitioned sessionStorage loss.
  */
 export const signInWithGoogleReal = async (): Promise<{
   uid: string;
@@ -55,21 +82,7 @@ export const signInWithGoogleReal = async (): Promise<{
   displayName: string;
   photoURL?: string;
 }> => {
-  // Mobile devices: use same-tab redirect flow to prevent blank popup tabs
-  if (isMobileDevice()) {
-    // If user is on any other origin (e.g. web.app or localhost), redirect to firebaseapp.com first so origin matches authDomain exactly
-    if (
-      typeof window !== 'undefined' &&
-      !window.location.hostname.includes('firebaseapp.com')
-    ) {
-      window.location.href = 'https://servejoy-pos-live.firebaseapp.com/login?auth=start_google';
-      throw new Error('Redirecting to Google Sign-In...');
-    }
-    await signInWithRedirect(auth, googleProvider);
-    throw new Error('Redirecting to Google Sign-In...');
-  }
-
-  // Desktop devices: use popup flow
+  // Desktop & popup-compatible browsers: use direct popup flow
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
@@ -85,10 +98,6 @@ export const signInWithGoogleReal = async (): Promise<{
   } catch (err: any) {
     if (err.code === 'auth/popup-closed-by-user') {
       throw new Error('Sign-In cancelled: Popup was closed.');
-    }
-    if (err.code === 'auth/popup-blocked') {
-      await signInWithRedirect(auth, googleProvider);
-      throw new Error('Redirecting to Google Sign-In...');
     }
     if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
       const configErr: any = new Error(
