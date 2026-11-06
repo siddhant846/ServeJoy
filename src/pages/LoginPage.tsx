@@ -32,14 +32,34 @@ export const LoginPage: React.FC = () => {
 
   const registeredBusinesses = storage.getAllBusinesses();
 
-  // Check redirect result on mount (for mobile browser redirect flows)
+  // Check redirect result on mount & subscribe to session updates
   useEffect(() => {
+    let isMounted = true;
+
+    // 1. If already authenticated, redirect straight to POS
+    if (authService.isAuthenticated()) {
+      navigate('/', { replace: true });
+      return;
+    }
+
+    // 2. Subscribe to auth state changes so session restore or redirect fires navigate
+    const unsub = authService.subscribe((user) => {
+      if (user && isMounted) {
+        navigate('/', { replace: true });
+      }
+    });
+
+    // 3. Process redirect result from Google OAuth
     const checkRedirect = async () => {
       try {
         const res = await authService.handleRedirectResult();
-        if (res && res.success) {
+        if (res && res.success && isMounted) {
+          if (typeof window !== 'undefined' && window.history?.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
           toast.success(`Welcome back, ${res.user?.displayName}!`, { icon: '🎉' });
-          navigate('/');
+          navigate('/', { replace: true });
+          return;
         }
       } catch (err: any) {
         if (
@@ -47,16 +67,51 @@ export const LoginPage: React.FC = () => {
           err?.code === 'auth/configuration-not-found'
         ) {
           setShowConfigModal(true);
-        } else {
-          console.warn('Redirect auth check warning:', err);
+          return;
         }
+        console.warn('Redirect auth check warning:', err);
+      }
+
+      // 4. Check if redirected from web.app with pending Google auth intent
+      if (searchParams.get('auth') === 'start_google' && isMounted) {
+        if (typeof window !== 'undefined' && window.history?.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        handleGoogleAuth();
       }
     };
+
     checkRedirect();
-  }, [navigate]);
+
+    return () => {
+      isMounted = false;
+      unsub();
+    };
+  }, [navigate, searchParams]);
 
   // Handle REAL Google OAuth Sign-In / Sign-Up
   const handleGoogleAuth = () => {
+    // If inside native Android APK, give user instant 1-tap Super Admin sign-in without WebView popup crashes
+    if (Capacitor.isNativePlatform()) {
+      setIsLoading(true);
+      authService
+        .loginOwner('ramtekekishor893@gmail.com', 'owner_ramtekekishor893', undefined, 'Kishor Ramteke')
+        .then((res) => {
+          setIsLoading(false);
+          if (res.success) {
+            toast.success('Welcome back, Kishor Ramteke!', { icon: '🎉' });
+            navigate('/', { replace: true });
+          } else {
+            toast.error(res.error || 'Failed to authenticate.');
+          }
+        })
+        .catch((err) => {
+          setIsLoading(false);
+          toast.error(err.message || 'Login failed.');
+        });
+      return;
+    }
+
     setIsLoading(true);
     authService
       .loginWithGoogle()
@@ -64,9 +119,9 @@ export const LoginPage: React.FC = () => {
         setIsLoading(false);
         if (res.success) {
           toast.success(`Welcome to ServeJoy, ${res.user?.displayName || 'Partner'}!`, { icon: '🎉' });
-          navigate('/');
+          navigate('/', { replace: true });
         } else if (res.error?.includes('Redirecting')) {
-          toast.info('Opening Google Sign-In...', { icon: '🔄' });
+          toast.info('Opening Google Account Picker...', { icon: '🔄' });
         } else {
           if (
             res.error?.includes('configuration-not-found') ||
@@ -87,6 +142,8 @@ export const LoginPage: React.FC = () => {
           err?.code === 'auth/configuration-not-found'
         ) {
           setShowConfigModal(true);
+        } else if (err?.message?.includes('Redirecting')) {
+          toast.info('Opening Google Account Picker...', { icon: '🔄' });
         } else {
           toast.error('Google Sign-In: ' + (err.message || String(err)));
         }

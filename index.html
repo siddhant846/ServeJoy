@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Seamlessly normalize web.app domain to firebaseapp.com so origin matches authDomain exactly (prevents mobile storage partitioning)
+      if (typeof window !== 'undefined' && window.location.hostname === 'servejoy-pos-live.web.app') {
+        window.location.replace('https://servejoy-pos-live.firebaseapp.com' + window.location.pathname + window.location.search + window.location.hash);
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#3a1e12" />
     <meta name="description" content="ServeJoy - Mobile-first Premium Café POS & QR Ordering SaaS" />
