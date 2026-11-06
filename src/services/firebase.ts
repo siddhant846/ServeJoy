@@ -3,12 +3,13 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as fbSignOut,
   setPersistence,
   browserLocalPersistence,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { Capacitor } from '@capacitor/core';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyB5Gg4T2hIHtqXHjiqT1H63W6ZkIBxxqZw',
@@ -22,7 +23,7 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 
-// Explicitly configure browserLocalPersistence so auth credentials and redirect state
+// Explicitly configure browserLocalPersistence so auth credentials
 // survive across mobile tab changes, redirects, and browser restarts.
 if (typeof window !== 'undefined') {
   setPersistence(auth, browserLocalPersistence).catch((err) => {
@@ -31,15 +32,13 @@ if (typeof window !== 'undefined') {
 }
 
 export const googleProvider = new GoogleAuthProvider();
-// Force Google to show the account picker screen so the user can choose which Google account to use
+// Force Google to show the authentic account picker screen so the user selects their real Google account
 googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
 /**
- * Triggers the REAL Google Account chooser popup synchronously to avoid popup blockers.
- * In a native mobile app (Capacitor), WebViews block multi-window popups and cross-origin redirects;
- * this function catches that cleanly so the mobile UI presents an in-app Google Account Picker.
+ * Triggers the REAL Google Account chooser popup synchronously on user gesture
  */
 export const signInWithGoogleReal = (): Promise<{
   uid: string;
@@ -47,13 +46,6 @@ export const signInWithGoogleReal = (): Promise<{
   displayName: string;
   photoURL?: string;
 }> => {
-  // If running inside native Android/iOS app, do not attempt web popups that corrupt WebView storage
-  if (Capacitor.isNativePlatform()) {
-    const mobileErr: any = new Error('auth/popup-blocked');
-    mobileErr.code = 'auth/popup-blocked';
-    return Promise.reject(mobileErr);
-  }
-
   // Call signInWithPopup immediately in the synchronous stack frame of user gesture
   return signInWithPopup(auth, googleProvider)
     .then((result) => {
@@ -73,9 +65,9 @@ export const signInWithGoogleReal = (): Promise<{
         throw new Error('Sign-In cancelled: Popup was closed.');
       }
       if (err.code === 'auth/popup-blocked') {
-        const blockedErr: any = new Error('Google Sign-In popup was blocked by browser security.');
-        blockedErr.code = 'auth/popup-blocked';
-        throw blockedErr;
+        // Fallback for mobile browsers where popup windows are blocked by system settings
+        await signInWithRedirect(auth, googleProvider);
+        throw new Error('Redirecting to Google Sign-In...');
       }
       if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
         const configErr: any = new Error(
@@ -89,7 +81,7 @@ export const signInWithGoogleReal = (): Promise<{
 };
 
 /**
- * Check if the user just returned from a Google OAuth redirect (safe fallback)
+ * Check if the user just returned from a Google OAuth redirect
  */
 export const checkRedirectResult = async (): Promise<{
   uid: string;
@@ -97,7 +89,21 @@ export const checkRedirectResult = async (): Promise<{
   displayName: string;
   photoURL?: string;
 } | null> => {
-  return null;
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user && result.user.email) {
+      return {
+        uid: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName || result.user.email.split('@')[0],
+        photoURL: result.user.photoURL || undefined,
+      };
+    }
+    return null;
+  } catch (err: any) {
+    console.warn('Redirect auth check notice:', err);
+    return null;
+  }
 };
 
 export const firebaseLogout = async (): Promise<void> => {

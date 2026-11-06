@@ -29,12 +29,8 @@ export const LoginPage: React.FC = () => {
   const [staffPin, setStaffPin] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
-  const [showGoogleModal, setShowGoogleModal] = useState<boolean>(false);
-  const [customGoogleEmail, setCustomGoogleEmail] = useState<string>('');
-  const [customGoogleName, setCustomGoogleName] = useState<string>('');
 
   const registeredBusinesses = storage.getAllBusinesses();
-  const isNative = Capacitor.isNativePlatform();
 
   // Check redirect result on mount (for mobile browser redirect flows)
   useEffect(() => {
@@ -59,42 +55,8 @@ export const LoginPage: React.FC = () => {
     checkRedirect();
   }, [navigate]);
 
-  // Handle 1-Tap Google Sign-In (Used by Account Picker on Mobile APK and Web Fallback)
-  const quickLoginGoogle = async (userEmail: string, userName?: string) => {
-    setIsLoading(true);
-    try {
-      const cleanEmail = userEmail.trim().toLowerCase();
-      if (!cleanEmail) {
-        toast.error('Please enter a valid Google email.');
-        return;
-      }
-      const res = await authService.loginOwner(
-        cleanEmail,
-        `google_uid_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`,
-        undefined,
-        userName || cleanEmail.split('@')[0]
-      );
-      if (res.success) {
-        toast.success(`Welcome to ServeJoy, ${res.user?.displayName || 'Partner'}!`, { icon: '🎉' });
-        setShowGoogleModal(false);
-        navigate('/');
-      } else {
-        toast.error(res.error || 'Authentication failed.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Handle REAL Google OAuth Sign-In / Sign-Up
   const handleGoogleAuth = () => {
-    // Inside native Android APK WebView, multi-window popups and cross-origin redirects
-    // are blocked by security and wipe sessionStorage. Open the Google Account Chooser immediately!
-    if (isNative) {
-      setShowGoogleModal(true);
-      return;
-    }
-
     setIsLoading(true);
     authService
       .loginWithGoogle()
@@ -103,9 +65,18 @@ export const LoginPage: React.FC = () => {
         if (res.success) {
           toast.success(`Welcome to ServeJoy, ${res.user?.displayName || 'Partner'}!`, { icon: '🎉' });
           navigate('/');
+        } else if (res.error?.includes('Redirecting')) {
+          toast.info('Opening Google Sign-In...', { icon: '🔄' });
         } else {
-          // If popup blocked or cancelled on web browser, smoothly fall back to Account Chooser modal
-          setShowGoogleModal(true);
+          if (
+            res.error?.includes('configuration-not-found') ||
+            res.error?.includes('operation-not-allowed') ||
+            res.error?.includes('not yet enabled')
+          ) {
+            setShowConfigModal(true);
+          } else {
+            toast.error(res.error || 'Google authentication was cancelled.');
+          }
         }
       })
       .catch((err: any) => {
@@ -117,8 +88,7 @@ export const LoginPage: React.FC = () => {
         ) {
           setShowConfigModal(true);
         } else {
-          // Fall back gracefully to Google account chooser modal
-          setShowGoogleModal(true);
+          toast.error('Google Sign-In: ' + (err.message || String(err)));
         }
       });
   };
@@ -547,136 +517,6 @@ export const LoginPage: React.FC = () => {
                 <ArrowRight className="h-3.5 w-3.5 text-accent" />
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= IN-APP GOOGLE ACCOUNT CHOOSER (Bypasses WebView OAuth Redirect Errors) ================= */}
-      {showGoogleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-sm rounded-[2rem] border border-border bg-card p-6 shadow-2xl text-left space-y-4">
-            {/* Header with Google Logo */}
-            <div className="flex items-center justify-between pb-1 border-b border-border/60">
-              <div className="flex items-center gap-2.5">
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                  />
-                </svg>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">Choose an account</h3>
-                  <p className="text-[10px] text-muted-foreground">to continue to ServeJoy POS</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(false)}
-                className="rounded-xl p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Account List */}
-            <div className="space-y-2">
-              {/* Option 1: Super Admin & Verified Master Account */}
-              <button
-                type="button"
-                onClick={() => quickLoginGoogle('ramtekekishor893@gmail.com', 'Kishor Ramteke')}
-                disabled={isLoading}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 to-transparent hover:from-amber-500/25 transition active:scale-98 text-left group shadow-sm"
-              >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-black flex items-center justify-center text-sm shadow shrink-0">
-                  KR
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-foreground truncate">Kishor Ramteke</p>
-                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[9px] font-bold text-amber-400">
-                      Super Admin
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground truncate font-mono">
-                    ramtekekishor893@gmail.com
-                  </p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-amber-400 shrink-0 group-hover:translate-x-0.5 transition" />
-              </button>
-
-              {/* Option 2: Demo Cafe Account */}
-              <button
-                type="button"
-                onClick={() => quickLoginGoogle('siddhant@chaipoint.com', 'Siddhant (Demo)')}
-                disabled={isLoading}
-                className="w-full flex items-center gap-3 p-2.5 rounded-2xl border border-border bg-secondary/40 hover:bg-secondary/70 transition active:scale-98 text-left group"
-              >
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#372215] to-[#653520] text-amber-200 font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
-                  CP
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-foreground truncate">Chai Point Demo</p>
-                    <span className="rounded-full bg-secondary px-1.5 py-0.2 text-[9px] font-bold text-muted-foreground">
-                      Demo Store
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground truncate font-mono">
-                    siddhant@chaipoint.com
-                  </p>
-                </div>
-                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 group-hover:translate-x-0.5 transition" />
-              </button>
-            </div>
-
-            {/* Custom Google Account Entry */}
-            <div className="pt-2 border-t border-border/60 space-y-2">
-              <p className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-accent" />
-                <span>Use another Google account</span>
-              </p>
-              <div className="space-y-2">
-                <input
-                  type="email"
-                  placeholder="Enter your Google email (e.g. cafe@gmail.com)"
-                  value={customGoogleEmail}
-                  onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-secondary/50 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent"
-                />
-                <input
-                  type="text"
-                  placeholder="Your Name (Optional)"
-                  value={customGoogleName}
-                  onChange={(e) => setCustomGoogleName(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-secondary/50 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent"
-                />
-                <button
-                  type="button"
-                  disabled={!customGoogleEmail.trim() || isLoading}
-                  onClick={() => quickLoginGoogle(customGoogleEmail, customGoogleName)}
-                  className="w-full py-2.5 rounded-xl bg-accent text-accent-foreground font-bold text-xs hover:bg-accent/90 disabled:opacity-50 transition active:scale-98 flex items-center justify-center gap-2 shadow"
-                >
-                  <span>Continue with this account</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-muted-foreground leading-relaxed text-center">
-              To continue, Google will share your name and email address with ServeJoy POS.
-            </p>
           </div>
         </div>
       )}
